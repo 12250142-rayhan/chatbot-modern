@@ -1,0 +1,38 @@
+[
+  {
+    "id": "batuk_akut",
+    "name": "Batuk akut ringan / iritasi saluran napas",
+    "symptoms": ["batuk"],
+    "explanation": "Batuk akut adalah batuk yang muncul dalam waktu singkat. Keluhan ini dapat terjadi karena iritasi tenggorokan, debu, asap, alergi ringan, atau awal infeksi saluran napas.",
+    "advice": "Minum air hangat, istirahat cukup, hindari asap rokok/debu, dan pantau gejala.",
+    "danger_signs": ["sesak napas", "nyeri dada", "batuk darah", "demam tinggi", "batuk lebih dari 2 minggu"],
+    "source_note": "Dummy dataset untuk simulasi tugas kuliah."
+  },
+  {
+    "id": "ispa_ringan",
+    "name": "ISPA ringan / flu",
+    "symptoms": ["batuk", "pilek", "demam", "sakit tenggorokan"],
+    "explanation": "ISPA ringan adalah gangguan saluran pernapasan atas yang sering ditandai batuk, pilek, demam ringan, sakit tenggorokan, dan badan terasa tidak nyaman.",
+    "advice": "Istirahat cukup, minum air yang cukup, dan pantau suhu tubuh.",
+    "danger_signs": ["sesak napas", "demam tinggi menetap", "lemas berat", "nyeri dada"],
+    "source_note": "Dummy dataset untuk simulasi tugas kuliah."
+  },
+  {
+    "id": "gastroenteritis",
+    "name": "Gangguan pencernaan / gastroenteritis ringan",
+    "symptoms": ["mual", "muntah", "diare", "nyeri perut"],
+    "explanation": "Gastroenteritis adalah gangguan pada saluran pencernaan yang dapat menimbulkan mual, muntah, diare, dan nyeri perut.",
+    "advice": "Jaga cairan tubuh, makan makanan ringan, dan pantau tanda dehidrasi.",
+    "danger_signs": ["muntah terus", "BAB berdarah", "dehidrasi berat", "nyeri perut hebat"],
+    "source_note": "Dummy dataset untuk simulasi tugas kuliah."
+  },
+  {
+    "id": "dengue_suspect",
+    "name": "Kecurigaan demam berdarah perlu evaluasi",
+    "symptoms": ["demam", "nyeri otot", "sakit kepala", "ruam", "mual", "muntah"],
+    "explanation": "Demam disertai nyeri badan, ruam, mual, atau muntah dapat menyerupai beberapa infeksi, salah satunya dengue. Kondisi ini perlu evaluasi lebih lanjut bila gejala memburuk.",
+    "advice": "Pantau demam dan kondisi tubuh. Segera periksa bila muncul tanda bahaya.",
+    "danger_signs": ["mimisan", "gusi berdarah", "nyeri perut hebat", "muntah terus", "lemas berat"],
+    "source_note": "Dummy dataset untuk simulasi tugas kuliah."
+  }
+]
