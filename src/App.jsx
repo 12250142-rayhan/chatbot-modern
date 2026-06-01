@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+const API_URL = "https://r-hospital-api-v3.vercel.app";
+
 export default function ModernChatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function ModernChatbot() {
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
-    const userInput = input;
+    const userInput = input.trim();
 
     const updatedMessages = [
       ...messages,
@@ -37,7 +39,7 @@ export default function ModernChatbot() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/chat", {
+      const response = await fetch(`${API_URL}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,6 +49,10 @@ export default function ModernChatbot() {
           history: updatedMessages,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
       const data = await response.json();
 
@@ -62,7 +68,9 @@ export default function ModernChatbot() {
         ...prev,
         {
           role: "bot",
-          text: "Server error: " + error.message,
+          text:
+            "Server error. Backend belum bisa diakses atau CORS belum benar. Detail: " +
+            error.message,
         },
       ]);
     } finally {
@@ -81,7 +89,9 @@ export default function ModernChatbot() {
       <div className="w-full max-w-4xl h-[85vh] bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         <div className="px-6 py-4 border-b border-white/10 bg-white/5">
           <h1 className="text-white text-2xl font-bold">R Hospital</h1>
-          <p className="text-slate-300 text-sm">Layanan chat Rumah sakit</p>
+          <p className="text-slate-300 text-sm">
+            Layanan chat Rumah Sakit
+          </p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
@@ -93,7 +103,7 @@ export default function ModernChatbot() {
               }`}
             >
               <div
-                className={`max-w-[75%] px-5 py-4 rounded-3xl ${
+                className={`max-w-[75%] px-5 py-4 rounded-3xl leading-relaxed whitespace-pre-line ${
                   msg.role === "user"
                     ? "bg-emerald-400 text-black"
                     : "bg-white/10 text-white"
