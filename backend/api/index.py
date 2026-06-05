@@ -80,7 +80,7 @@ def get_on_duty_doctor():
 
 @app.get("/")
 def home():
-    return {"message": "R Hospital Backend is running"}
+    return {"message": "NM Hospital Backend is running"}
 
 
 @app.get("/test")
@@ -394,7 +394,7 @@ def analyze_fever(symptoms, duration_days, temperature):
             "sedang",
             "infeksi virus atau bakteri yang perlu dipantau",
             f"Demam selama {duration_days} hari perlu perhatian, terutama bila tidak membaik.",
-            "Cukup minum, istirahat, pantau suhu, dan periksa bila demam lebih dari 3 hari atau memburuk."
+            "Cukup minum, istirahat, minum Paracetamol, pantau suhu dan periksa bila demam lebih dari 3 hari atau memburuk."
         )
 
     return make_result(
@@ -741,11 +741,11 @@ def medical_reply(message, history):
             "Pantau gejala dan konsultasikan ke dokter bila memburuk atau tidak membaik."
         )
 
-        medicine_advice = get_medicine_advice(symptoms)
+    medicine_advice = get_medicine_advice(symptoms)
 
     if duration_days is not None and duration_days <= 1:
         return (
-            "Hasil analisis awal R Hospital:\n\n"
+            "Hasil analisis awal NM Hospital:\n\n"
             f"Tingkat perhatian: {result['level']}.\n\n"
             f"Kemungkinan:\n{result['kemungkinan']}.\n\n"
             f"Penjelasan:\n{result['penjelasan']}\n\n"
@@ -760,7 +760,7 @@ def medical_reply(message, history):
         doctor = get_on_duty_doctor()
 
         return (
-            "Hasil analisis awal R Hospital:\n\n"
+            "Hasil analisis awal NM Hospital:\n\n"
             f"Tingkat perhatian: {result['level']}.\n\n"
             f"Kemungkinan:\n{result['kemungkinan']}.\n\n"
             f"Penjelasan:\n{result['penjelasan']}\n\n"
@@ -773,7 +773,7 @@ def medical_reply(message, history):
         )
 
     return (
-        "Hasil analisis awal R Hospital:\n\n"
+        "Hasil analisis awal NM Hospital:\n\n"
         f"Tingkat perhatian: {result['level']}.\n\n"
         f"Kemungkinan:\n{result['kemungkinan']}.\n\n"
         f"Penjelasan:\n{result['penjelasan']}\n\n"

@@ -167,7 +167,7 @@ export default function ModernChatbot() {
                 </div>
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold">
-                    R Hospital Chat
+                    NM Hospital Chat
                   </h1>
                   <p className="text-xs md:text-sm text-slate-300">
                     Skrining awal keluhan pasien
