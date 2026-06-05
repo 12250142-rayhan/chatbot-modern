@@ -536,7 +536,9 @@ def medical_reply(message, history):
 
     if not symptoms:
         return (
-            "Boleh jelaskan keluhan utama Anda? Contohnya batuk, demam, pilek, sakit tenggorokan, mual, muntah, diare, nyeri perut, ruam, gatal, nyeri kencing, sakit gigi, mata merah, telinga sakit, sesak, atau nyeri dada."
+            "Boleh jelaskan keluhan utama Anda? Contohnya batuk, demam, pilek, "
+            "sakit tenggorokan, mual, muntah, diare, nyeri perut, ruam, gatal, "
+            "nyeri kencing, sakit gigi, mata merah, telinga sakit, sesak, atau nyeri dada."
         )
 
     missing = ask_missing_info(symptoms, age, duration_days, temperature, text)
@@ -546,29 +548,78 @@ def medical_reply(message, history):
             f"Boleh lengkapi dulu: {', '.join(missing)}?"
         )
 
-    analyzers = [
-        analyze_respiratory,
-        analyze_fever,
-        analyze_digestive,
-        analyze_skin,
-        analyze_urinary,
-        analyze_eye,
-        analyze_ent_dental,
-        analyze_neuro_muscle,
-        analyze_reproductive,
-    ]
-
     result = None
 
-    for analyzer in analyzers:
-        if analyzer == analyze_fever:
-            if "demam" in symptoms:
-                result = analyzer(symptoms, duration_days, temperature)
-        else:
-            result = analyzer(symptoms, duration_days)
+    if any(symptom in symptoms for symptom in [
+        "batuk",
+        "pilek",
+        "sakit tenggorokan",
+        "sesak napas",
+        "nyeri dada",
+        "dahak",
+        "dahak darah",
+        "hidung tersumbat",
+    ]):
+        result = analyze_respiratory(symptoms, duration_days, temperature)
 
-        if result:
-            break
+    elif "demam" in symptoms:
+        result = analyze_fever(symptoms, duration_days, temperature)
+
+    elif any(symptom in symptoms for symptom in [
+        "mual",
+        "muntah",
+        "diare",
+        "nyeri perut",
+        "perut kembung",
+        "nyeri ulu hati",
+    ]):
+        result = analyze_digestive(symptoms, duration_days)
+
+    elif any(symptom in symptoms for symptom in [
+        "ruam",
+        "gatal",
+        "bentol",
+        "luka bernanah",
+    ]):
+        result = analyze_skin(symptoms, duration_days)
+
+    elif any(symptom in symptoms for symptom in [
+        "nyeri kencing",
+        "sering kencing",
+        "urine darah",
+    ]):
+        result = analyze_urinary(symptoms, duration_days)
+
+    elif any(symptom in symptoms for symptom in [
+        "mata merah",
+        "mata nyeri",
+        "penglihatan buram",
+    ]):
+        result = analyze_eye(symptoms, duration_days)
+
+    elif any(symptom in symptoms for symptom in [
+        "sakit gigi",
+        "gusi bengkak",
+        "nyeri telinga",
+        "keluar cairan telinga",
+    ]):
+        result = analyze_ent_dental(symptoms, duration_days)
+
+    elif any(symptom in symptoms for symptom in [
+        "lemah separuh badan",
+        "sakit kepala hebat",
+        "nyeri sendi",
+        "bengkak sendi",
+        "nyeri punggung",
+    ]):
+        result = analyze_neuro_muscle(symptoms, duration_days)
+
+    elif any(symptom in symptoms for symptom in [
+        "nyeri haid",
+        "haid tidak teratur",
+        "keputihan",
+    ]):
+        result = analyze_reproductive(symptoms, duration_days)
 
     if not result:
         result = make_result(
