@@ -17,7 +17,7 @@ export default function ModernChatbot() {
     {
       role: "bot",
       text:
-        "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
+        "Halo! Selamat datang di NM Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
     },
   ]);
 
@@ -99,7 +99,7 @@ export default function ModernChatbot() {
       {
         role: "bot",
         text:
-          "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
+          "Halo! Selamat datang di NM Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
       },
     ]);
   };
@@ -220,7 +220,7 @@ export default function ModernChatbot() {
                         msg.role === "user" ? "text-right" : "text-left"
                       }`}
                     >
-                      {msg.role === "user" ? "Pasien" : "R Hospital Assistant"}
+                      {msg.role === "user" ? "Pasien" : "NM Hospital Assistant"}
                     </p>
                   </div>
                 </div>
@@ -283,7 +283,7 @@ export default function ModernChatbot() {
             </div>
 
             <p className="text-[11px] text-slate-400 mt-3 text-center">
-              R Hospital Assistant hanya membantu skrining awal. Untuk kondisi
+              NM Hospital Assistant hanya membantu skrining awal. Untuk kondisi
               darurat, segera hubungi IGD atau fasilitas kesehatan terdekat.
             </p>
           </footer>
