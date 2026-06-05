@@ -144,7 +144,7 @@ export default function ModernChatbot() {
                 </h2>
                 <p className="text-sm text-slate-300 leading-relaxed">
                   Ini hanya skrining awal, bukan diagnosis pasti. Jika ada tanda
-                  bahaya, segera ke IGD.
+                  darurat, segera ke IGD.
                 </p>
               </div>
             </div>
