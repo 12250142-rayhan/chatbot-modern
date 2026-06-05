@@ -273,7 +273,7 @@ def medical_agent(user_message: str, history: list | None = None) -> str:
 
     top_results = disease_results[:3]
 
-    response = "Hasil analisis awal R Hospital:\n\n"
+    response = "Hasil analisis awal NM Hospital:\n\n"
 
     for index, item in enumerate(top_results, start=1):
         matched_text = ", ".join(item["matched"])
