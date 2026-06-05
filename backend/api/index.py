@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,6 +19,64 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+DOCTOR_SCHEDULE = {
+    0: {  # Senin
+        "00-09": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "09-18": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+        "18-03": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+    },
+    1: {  # Selasa
+        "00-09": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+        "09-18": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "18-03": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+    },
+    2: {  # Rabu
+        "00-09": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "09-18": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+        "18-03": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+    },
+    3: {  # Kamis
+        "00-09": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+        "09-18": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "18-03": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+    },
+    4: {  # Jumat
+        "00-09": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "09-18": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "18-03": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+    },
+    5: {  # Sabtu
+        "00-09": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+        "09-18": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+        "18-03": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+    },
+    6: {  # Minggu
+        "00-09": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "09-18": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "18-03": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+    },
+}
+
+
+def get_on_duty_doctor():
+    now = datetime.now(timezone(timedelta(hours=7)))  # WIB
+    weekday = now.weekday()
+    hour = now.hour
+
+    if 0 <= hour < 9:
+        shift = "00-09"
+    elif 9 <= hour < 18:
+        shift = "09-18"
+    else:
+        shift = "18-03"
+
+    doctor = DOCTOR_SCHEDULE[weekday][shift]
+
+    return {
+        "name": doctor["name"],
+        "phone": doctor["phone"],
+        "shift": shift,
+    }
 
 @app.get("/")
 def home():
@@ -517,6 +576,59 @@ def analyze_reproductive(symptoms, duration_days):
 
     return None
 
+def get_medicine_advice(symptoms):
+    advice = []
+
+    if "demam" in symptoms or "sakit kepala" in symptoms or "nyeri otot" in symptoms:
+        advice.append(
+            "- Untuk demam/nyeri: bisa gunakan obat penurun panas atau pereda nyeri seperti paracetamol sesuai aturan pakai pada kemasan."
+        )
+
+    if "batuk" in symptoms:
+        if "dahak" in symptoms:
+            advice.append(
+                "- Untuk batuk berdahak: perbanyak minum air hangat, hindari asap/debu, dan bisa gunakan obat batuk berdahak sesuai aturan pakai."
+            )
+        else:
+            advice.append(
+                "- Untuk batuk kering: minum air hangat, hindari asap/debu, dan bisa gunakan obat batuk kering sesuai aturan pakai."
+            )
+
+    if "pilek" in symptoms or "hidung tersumbat" in symptoms:
+        advice.append(
+            "- Untuk pilek/hidung tersumbat: istirahat cukup, minum hangat, dan bisa gunakan obat flu/pilek sesuai aturan pakai bila diperlukan."
+        )
+
+    if "sakit tenggorokan" in symptoms:
+        advice.append(
+            "- Untuk sakit tenggorokan: minum hangat, hindari makanan terlalu pedas/berminyak, dan bisa gunakan pelega tenggorokan."
+        )
+
+    if "diare" in symptoms or "muntah" in symptoms:
+        advice.append(
+            "- Untuk diare/muntah: utamakan cairan oralit atau cairan elektrolit untuk mencegah dehidrasi."
+        )
+
+    if "nyeri ulu hati" in symptoms or "perut kembung" in symptoms:
+        advice.append(
+            "- Untuk maag/asam lambung: makan porsi kecil tapi sering, hindari kopi, pedas, asam, dan jangan langsung rebahan setelah makan."
+        )
+
+    if "gatal" in symptoms or "bentol" in symptoms:
+        advice.append(
+            "- Untuk gatal/bentol ringan: hindari pemicu alergi, jangan digaruk, dan bisa gunakan obat alergi sesuai aturan pakai bila cocok."
+        )
+
+    if not advice:
+        advice.append(
+            "- Istirahat cukup, minum air yang cukup, makan teratur, dan pantau perkembangan gejala."
+        )
+
+    advice.append(
+        "- Jika muncul tanda bahaya seperti sesak, nyeri dada, pingsan, kejang, batuk darah, atau kondisi memburuk, segera ke IGD."
+    )
+
+    return "\n".join(advice)
 
 def medical_reply(message, history):
     text = merge_user_text(history, message)
@@ -528,11 +640,11 @@ def medical_reply(message, history):
     emergency_reasons = emergency_check(text, symptoms, temperature)
     if emergency_reasons:
         return (
-            "Tanda bahaya terdeteksi.\n\n"
-            f"Alasan: {', '.join(emergency_reasons)}.\n\n"
-            "Sebaiknya segera ke IGD atau hubungi tenaga medis terdekat. "
-            "Chatbot ini hanya membantu skrining awal dan bukan pengganti diagnosis dokter."
-        )
+        "Tanda bahaya terdeteksi.\n\n"
+        f"Alasan: {', '.join(emergency_reasons)}.\n\n"
+        "Kondisi ini termasuk urgent. Sebaiknya segera ke IGD atau fasilitas kesehatan terdekat.\n\n"
+        "Catatan: chatbot ini hanya membantu skrining awal dan bukan pengganti diagnosis dokter."
+         )
 
     if not symptoms:
         return (
@@ -627,6 +739,37 @@ def medical_reply(message, history):
             "keluhan umum yang perlu dipantau",
             "Gejala yang disebutkan belum cukup spesifik untuk mengarah ke satu kemungkinan penyakit tertentu.",
             "Pantau gejala dan konsultasikan ke dokter bila memburuk atau tidak membaik."
+        )
+
+        medicine_advice = get_medicine_advice(symptoms)
+
+    if duration_days is not None and duration_days <= 1:
+        return (
+            "Hasil analisis awal R Hospital:\n\n"
+            f"Tingkat perhatian: {result['level']}.\n\n"
+            f"Kemungkinan:\n{result['kemungkinan']}.\n\n"
+            f"Penjelasan:\n{result['penjelasan']}\n\n"
+            "Karena gejala baru berlangsung sekitar 1 hari dan belum ada tanda bahaya, "
+            "Anda bisa melakukan perawatan awal terlebih dahulu.\n\n"
+            f"Saran obat/perawatan awal:\n{medicine_advice}\n\n"
+            "Catatan: ini bukan diagnosis pasti. Jika gejala memburuk atau tidak membaik, "
+            "konsultasikan ke tenaga medis."
+        )
+
+    if duration_days is not None and duration_days >= 2:
+        doctor = get_on_duty_doctor()
+
+        return (
+            "Hasil analisis awal R Hospital:\n\n"
+            f"Tingkat perhatian: {result['level']}.\n\n"
+            f"Kemungkinan:\n{result['kemungkinan']}.\n\n"
+            f"Penjelasan:\n{result['penjelasan']}\n\n"
+            f"Saran awal:\n{result['saran']}\n\n"
+            "Karena gejala sudah berlangsung 2 hari atau lebih, Anda boleh menghubungi tenaga medis yang sedang bertugas:\n\n"
+            f"{doctor['name']}\n"
+            f"{doctor['phone']}\n"
+            f"Shift aktif: {doctor['shift']} WIB\n\n"
+            "Catatan: ini bukan diagnosis pasti. Jika muncul tanda bahaya, segera ke IGD."
         )
 
     return (
