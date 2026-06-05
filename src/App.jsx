@@ -114,7 +114,7 @@ export default function ModernChatbot() {
                 R
               </div>
               <div>
-                <h1 className="text-2xl font-bold">R Hospital</h1>
+                <h1 className="text-2xl font-bold">NM Hospital</h1>
                 <p className="text-sm text-slate-300">Medical Assistant</p>
               </div>
             </div>
