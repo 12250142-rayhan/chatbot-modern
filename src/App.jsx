@@ -143,7 +143,7 @@ export default function ModernChatbot() {
                   Disclaimer
                 </h2>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Ini hanya skrining awal, bukan diagnosis pasti. Jika ada tanda
+                  Ini hanya skrining awal, bukan diagnosis pasti. Jika ada tanda tanda
                   darurat, segera ke IGD.
                 </p>
               </div>
