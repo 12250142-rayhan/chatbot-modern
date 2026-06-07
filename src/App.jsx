@@ -9,6 +9,28 @@ const quickPrompts = [
   "Saya sesak napas dan nyeri dada",
 ];
 
+function HospitalLogo({ small = false }) {
+  const size = small ? "w-10 h-10" : "w-14 h-14";
+
+  return (
+    <div
+      className={`${size} rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg`}
+    >
+      <svg
+        viewBox="0 0 64 64"
+        className={small ? "w-6 h-6" : "w-8 h-8"}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect x="14" y="10" width="36" height="44" rx="4" fill="white" />
+        <rect x="28" y="18" width="8" height="20" rx="1" fill="#10b981" />
+        <rect x="22" y="24" width="20" height="8" rx="1" fill="#10b981" />
+        <rect x="20" y="42" width="8" height="12" rx="1" fill="#cbd5e1" />
+        <rect x="36" y="42" width="8" height="12" rx="1" fill="#cbd5e1" />
+      </svg>
+    </div>
+  );
+}
 export default function ModernChatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,8 +38,7 @@ export default function ModernChatbot() {
   const [messages, setMessages] = useState([
     {
       role: "bot",
-      text:
-        "Halo! Selamat datang di NM Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
+      text: "Halo! Selamat datang di NM Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
     },
   ]);
 
@@ -98,8 +119,7 @@ export default function ModernChatbot() {
     setMessages([
       {
         role: "bot",
-        text:
-          "Halo! Selamat datang di NM Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
+        text: "Halo! Selamat datang di NM Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
       },
     ]);
   };
@@ -110,9 +130,7 @@ export default function ModernChatbot() {
         <aside className="hidden md:flex flex-col justify-between rounded-3xl border border-white/10 bg-white/10 backdrop-blur-xl p-6 shadow-2xl">
           <div>
             <div className="flex items-center gap-3 mb-8">
-              <div className="h-12 w-12 rounded-2xl bg-emerald-400 text-slate-950 flex items-center justify-center font-black text-xl">
-                R
-              </div>
+              <HospitalLogo />
               <div>
                 <h1 className="text-2xl font-bold">NM Hospital</h1>
                 <p className="text-sm text-slate-300">Medical Assistant</p>
@@ -143,8 +161,8 @@ export default function ModernChatbot() {
                   Disclaimer
                 </h2>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Ini hanya skrining awal, bukan diagnosis pasti. Jika ada tanda tanda
-                  darurat, segera ke IGD.
+                  Ini hanya skrining awal, bukan diagnosis pasti. Jika ada tanda
+                  tanda darurat, segera ke IGD.
                 </p>
               </div>
             </div>
@@ -162,8 +180,8 @@ export default function ModernChatbot() {
           <header className="px-5 md:px-7 py-5 border-b border-white/10 bg-white/5 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <div className="md:hidden h-10 w-10 rounded-2xl bg-emerald-400 text-slate-950 flex items-center justify-center font-black">
-                  R
+                <div className="md:hidden">
+                  <HospitalLogo small />
                 </div>
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold">
@@ -195,15 +213,13 @@ export default function ModernChatbot() {
                     msg.role === "user" ? "flex-row-reverse" : "flex-row"
                   }`}
                 >
-                  <div
-                    className={`h-9 w-9 shrink-0 rounded-2xl flex items-center justify-center text-sm font-bold ${
-                      msg.role === "user"
-                        ? "bg-emerald-400 text-slate-950"
-                        : "bg-white/10 text-white border border-white/10"
-                    }`}
-                  >
-                    {msg.role === "user" ? "U" : "R"}
-                  </div>
+                  {msg.role === "user" ? (
+                    <div className="h-9 w-9 shrink-0 rounded-2xl bg-emerald-400 text-slate-950 flex items-center justify-center text-sm font-bold">
+                      U
+                    </div>
+                  ) : (
+                    <HospitalLogo small />
+                  )}
 
                   <div>
                     <div
@@ -230,9 +246,7 @@ export default function ModernChatbot() {
             {loading && (
               <div className="flex justify-start">
                 <div className="flex gap-3 max-w-[78%]">
-                  <div className="h-9 w-9 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-sm font-bold">
-                    R
-                  </div>
+                  <HospitalLogo small />
                   <div className="bg-white/10 text-white px-5 py-4 rounded-3xl rounded-tl-md border border-white/10">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-slate-300 animate-bounce"></span>
