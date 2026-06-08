@@ -38,7 +38,7 @@ export default function ModernChatbot() {
   const [messages, setMessages] = useState([
     {
       role: "bot",
-      text: "Halo! Selamat datang di NM Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
+      text: "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
     },
   ]);
 
@@ -119,7 +119,7 @@ export default function ModernChatbot() {
     setMessages([
       {
         role: "bot",
-        text: "Halo! Selamat datang di NM Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
+        text: "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
       },
     ]);
   };
@@ -132,7 +132,7 @@ export default function ModernChatbot() {
             <div className="flex items-center gap-3 mb-8">
               <HospitalLogo />
               <div>
-                <h1 className="text-2xl font-bold">NM Hospital</h1>
+                <h1 className="text-2xl font-bold">R Hospital</h1>
                 <p className="text-sm text-slate-300">Medical Assistant</p>
               </div>
             </div>
@@ -185,7 +185,7 @@ export default function ModernChatbot() {
                 </div>
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold">
-                    NM Hospital Chat
+                    R Hospital Chat
                   </h1>
                   <p className="text-xs md:text-sm text-slate-300">
                     Skrining awal keluhan pasien
@@ -236,7 +236,7 @@ export default function ModernChatbot() {
                         msg.role === "user" ? "text-right" : "text-left"
                       }`}
                     >
-                      {msg.role === "user" ? "Pasien" : "NM Hospital Assistant"}
+                      {msg.role === "user" ? "Pasien" : "R Hospital Assistant"}
                     </p>
                   </div>
                 </div>
@@ -297,7 +297,7 @@ export default function ModernChatbot() {
             </div>
 
             <p className="text-[11px] text-slate-400 mt-3 text-center">
-              NM Hospital Assistant hanya membantu skrining awal. Untuk kondisi
+              R Hospital Assistant hanya membantu skrining awal. Untuk kondisi
               darurat, segera hubungi IGD atau fasilitas kesehatan terdekat.
             </p>
           </footer>
