@@ -21,39 +21,39 @@ app.add_middleware(
 
 DOCTOR_SCHEDULE = {
     0: {  # Senin
-        "00-09": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-        "09-18": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
-        "18-03": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "00-08": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "08-16": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+        "16-00": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
     },
     1: {  # Selasa
-        "00-09": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
-        "09-18": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-        "18-03": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+        "00-08": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+        "08-16": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "16-00": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
     },
     2: {  # Rabu
-        "00-09": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-        "09-18": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
-        "18-03": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "00-08": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "08-16": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+        "16-00": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
     },
     3: {  # Kamis
-        "00-09": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
-        "09-18": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-        "18-03": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+        "00-08": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+        "08-16": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "16-00": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
     },
     4: {  # Jumat
-        "00-09": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-        "09-18": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-        "18-03": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+        "00-08": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "08-16": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "16-00": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
     },
     5: {  # Sabtu
-        "00-09": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
-        "09-18": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
-        "18-03": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "00-08": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+        "08-16": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
+        "16-00": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
     },
     6: {  # Minggu
-        "00-09": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-        "09-18": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-        "18-03": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
+        "00-08": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
+        "08-16": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
+        "16-00": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
     },
 }
 
@@ -63,19 +63,22 @@ def get_on_duty_doctor():
     weekday = now.weekday()
     hour = now.hour
 
-    if 0 <= hour < 9:
-        shift = "00-09"
-    elif 9 <= hour < 18:
-        shift = "09-18"
+    if 0 <= hour < 8:
+        shift = "00-08"
+        display_shift = "00:00 - 08:00 WIB (12:00 AM - 8:00 AM)"
+    elif 8 <= hour < 16:
+        shift = "08-16"
+        display_shift = "08:00 - 16:00 WIB (8:00 AM - 4:00 PM)"
     else:
-        shift = "18-03"
+        shift = "16-00"
+        display_shift = "16:00 - 00:00 WIB (4:00 PM - 12:00 AM)"
 
     doctor = DOCTOR_SCHEDULE[weekday][shift]
 
     return {
         "name": doctor["name"],
         "phone": doctor["phone"],
-        "shift": shift,
+        "shift": display_shift,
     }
 
 @app.get("/")
@@ -94,38 +97,60 @@ def merge_user_text(history, current_message):
     if history:
         for msg in history:
             if msg.get("role") == "user":
-                texts.append(msg.get("text", ""))
+                value = msg.get("text", "")
+                if value:
+                    texts.append(value)
 
-    texts.append(current_message)
+    if current_message and current_message not in texts:
+        texts.append(current_message)
+
     return " ".join(texts).lower()
 
 
 def detect_age(text):
-    match = re.search(r"(\d{1,3})\s*(tahun|thn|th|yo|y/o)", text)
-    if match:
-        return int(match.group(1))
+    patterns = [
+        r"(umur|usia)\s*(saya|pasien)?\s*(\d{1,3})",
+        r"(saya|pasien)\s*(berumur|berusia)\s*(\d{1,3})",
+        r"(\d{1,3})\s*(tahun|thn|th)\s*(umur|usia)",
+    ]
 
-    match = re.search(r"(umur|usia)\s*(saya)?\s*(\d{1,3})", text)
-    if match:
-        return int(match.group(3))
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            numbers = re.findall(r"\d{1,3}", match.group(0))
+            if numbers:
+                return int(numbers[0])
 
     return None
 
 
 def detect_duration_days(text):
+    durations = []
+
+    # Durasi normal
     patterns = [
         (r"(\d+)\s*hari", 1),
         (r"(\d+)\s*minggu", 7),
         (r"(\d+)\s*bulan", 30),
-        (r"(\d+)\s*tahun", 365),
         (r"(\d+)\s*jam", 1 / 24),
     ]
-
-    durations = []
 
     for pattern, multiplier in patterns:
         for match in re.finditer(pattern, text):
             durations.append(int(match.group(1)) * multiplier)
+
+    # Tahun hanya dianggap durasi kalau ada konteks durasi,
+    # supaya "umur 19 tahun" tidak dianggap sakit 19 tahun.
+    year_patterns = [
+        r"(selama|sejak|sudah|kurang lebih|sekitar)\s*(\d+)\s*tahun",
+        r"(\d+)\s*tahun\s*(terakhir|lamanya)",
+    ]
+
+    for pattern in year_patterns:
+        for match in re.finditer(pattern, text):
+            numbers = re.findall(r"\d+", match.group(0))
+            if numbers:
+                durations.append(int(numbers[0]) * 365)
 
     if "kemarin" in text:
         durations.append(1)
@@ -149,6 +174,14 @@ def detect_temperature(text):
 def contains_any(text, keywords):
     return any(keyword in text for keyword in keywords)
 
+def is_negated(text, keyword):
+    patterns = [
+        rf"(tidak ada|ga ada|gak ada|nggak ada|tanpa)\s+{re.escape(keyword)}",
+        rf"(tidak|ga|gak|nggak|enggak)\s+{re.escape(keyword)}",
+        rf"{re.escape(keyword)}\s+(tidak ada|ga ada|gak ada|nggak ada)",
+    ]
+
+    return any(re.search(pattern, text) for pattern in patterns)
 
 def detect_symptoms(text):
     symptom_map = {
@@ -222,26 +255,29 @@ def detect_symptoms(text):
     symptoms = []
 
     for symptom, keywords in symptom_map.items():
-        if contains_any(text, keywords):
-            symptoms.append(symptom)
+        for keyword in keywords:
+            if keyword in text and not is_negated(text, keyword):
+                symptoms.append(symptom)
+                break
 
     return symptoms
 
 
 def detect_negative_info(text):
-    negative_words = [
-        "tidak ada",
-        "ga ada",
-        "gak ada",
-        "nggak ada",
-        "tanpa",
-        "tidak",
-        "enggak",
-        "nggak",
-        "ga",
-        "gak",
+    negative_patterns = [
+        r"\btidak ada\b",
+        r"\bga ada\b",
+        r"\bgak ada\b",
+        r"\bnggak ada\b",
+        r"\btanpa\b",
+        r"\btidak\b",
+        r"\benggak\b",
+        r"\bnggak\b",
+        r"\bga\b",
+        r"\bgak\b",
     ]
-    return any(word in text for word in negative_words)
+
+    return any(re.search(pattern, text) for pattern in negative_patterns)
 
 
 def emergency_check(text, symptoms, temperature):
@@ -768,7 +804,7 @@ def medical_reply(message, history):
             "Karena gejala sudah berlangsung 2 hari atau lebih, Anda boleh menghubungi tenaga medis yang sedang bertugas:\n\n"
             f"{doctor['name']}\n"
             f"{doctor['phone']}\n"
-            f"Shift aktif: {doctor['shift']} WIB\n\n"
+            f"Shift aktif: {doctor['shift']}\n\n"
             "Catatan: ini bukan diagnosis pasti. Jika muncul tanda bahaya, segera ke IGD."
         )
 
