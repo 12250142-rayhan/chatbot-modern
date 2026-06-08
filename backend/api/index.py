@@ -1,4 +1,6 @@
+import os
 import re
+import requests
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +20,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+OPENCLAW_API_KEY = os.getenv("OPENCLAW_API_KEY", "")
+OPENCLAW_BASE_URL = os.getenv("OPENCLAW_BASE_URL", "")
+OPENCLAW_MODEL = os.getenv("OPENCLAW_MODEL", "openai/gpt-4o-mini")
 
 DOCTOR_SCHEDULE = {
     0: {  # Senin
@@ -90,6 +96,14 @@ def home():
 def test():
     return {"status": "ok"}
 
+@app.get("/version")
+def version():
+    return {
+        "app": "R Hospital Backend",
+        "version": "duration-shift-fix-v2",
+        "shift": "00-08 / 08-16 / 16-00",
+        "duration_fix": True
+    }
 
 def merge_user_text(history, current_message):
     texts = []
@@ -817,6 +831,88 @@ def medical_reply(message, history):
         "Catatan: ini bukan diagnosis pasti. Diagnosis tetap perlu pemeriksaan langsung oleh tenaga medis."
     )
 
+
+@app.post("/ask-doctor")
+def ask_doctor(request: dict):
+    user_message = request.get("message", "")
+    history = request.get("history", [])
+
+    if not user_message.strip():
+        return {
+            "reply": "Silakan tuliskan pertanyaan kesehatan yang ingin Anda tanyakan."
+        }
+
+    if not OPENCLAW_BASE_URL or not OPENCLAW_API_KEY:
+        return {
+            "reply": (
+                "Fitur Tanya Dokter AI belum aktif karena konfigurasi OpenClaw belum tersedia. "
+                "Silakan hubungi admin aplikasi."
+            )
+        }
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "Kamu adalah wannita seorang asisten dokter untuk R Hospital. "
+                "Jawab dalam bahasa Indonesia yang ramah, jelas, dan mudah dipahami. "
+                "Tugasmu menjawab pertanyaan kesehatan umum, edukasi gejala, menjaga pola makan dan tips hidup sehat, "
+                "perawatan awal yang aman, penjelasan obat umum, dan kapan pasien perlu periksa. "
+                "Jangan memberikan diagnosis pasti. "
+                "Jangan membuat resep obat keras atau antibiotik. "
+            ),
+        }
+    ]
+
+    for msg in history[-8:]:
+        role = msg.get("role")
+        text = msg.get("text", "")
+
+        if not text:
+            continue
+
+        if role == "user":
+            messages.append({"role": "user", "content": text})
+        elif role == "bot":
+            messages.append({"role": "assistant", "content": text})
+
+    messages.append({"role": "user", "content": user_message})
+
+    try:
+        response = requests.post(
+            f"{OPENCLAW_BASE_URL.rstrip('/')}/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENCLAW_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": OPENCLAW_MODEL,
+                "messages": messages,
+                "temperature": 0.3,
+            },
+            timeout=30,
+        )
+
+        if response.status_code != 200:
+            return {
+                "reply": (
+                    "Maaf, layanan Tanya Dokter AI sedang tidak bisa diakses. "
+                    f"Kode error: {response.status_code}"
+                )
+            }
+
+        data = response.json()
+        reply = data["choices"][0]["message"]["content"]
+
+        return {"reply": reply}
+
+    except Exception as error:
+        return {
+            "reply": (
+                "Maaf, terjadi gangguan saat menghubungi layanan Tanya Dokter AI. "
+                f"Detail: {str(error)}"
+            )
+        }
 
 @app.post("/chat")
 def chat(request: dict):
