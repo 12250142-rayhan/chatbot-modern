@@ -23,7 +23,7 @@ app.add_middleware(
 
 OPENCLAW_API_KEY = os.getenv("OPENCLAW_API_KEY", "")
 OPENCLAW_BASE_URL = os.getenv("OPENCLAW_BASE_URL", "")
-OPENCLAW_MODEL = os.getenv("OPENCLAW_MODEL", "openai/gpt-4o-mini")
+OPENCLAW_MODEL = os.getenv("OPENCLAW_MODEL", "google/gemini-2.5-flash")
 
 DOCTOR_SCHEDULE = {
     0: {  # Senin
@@ -845,7 +845,7 @@ def ask_doctor(request: dict):
     if not OPENCLAW_BASE_URL or not OPENCLAW_API_KEY:
         return {
             "reply": (
-                "Fitur Tanya Dokter AI belum aktif karena konfigurasi OpenClaw belum tersedia. "
+                "Fitur Tanya Susan belum aktif karena konfigurasi OpenClaw belum tersedia. "
                 "Silakan hubungi admin aplikasi."
             )
         }
@@ -854,12 +854,14 @@ def ask_doctor(request: dict):
         {
             "role": "system",
             "content": (
-                "Kamu adalah wannita seorang asisten dokter untuk R Hospital. "
+                "Kamu adalah Susan, seorang asisten dokter AI perempuan untuk R Hospital yang memiliki empati kepada manusia. "
                 "Jawab dalam bahasa Indonesia yang ramah, jelas, dan mudah dipahami. "
                 "Tugasmu menjawab pertanyaan kesehatan umum, edukasi gejala, menjaga pola makan dan tips hidup sehat, "
                 "perawatan awal yang aman, penjelasan obat umum, dan kapan pasien perlu periksa. "
                 "Jangan memberikan diagnosis pasti. "
                 "Jangan membuat resep obat keras atau antibiotik. "
+                "Jika ada tanda bahaya seperti sesak napas, nyeri dada, pingsan, kejang, batuk darah, "
+                "atau penurunan kesadaran, arahkan pasien segera ke IGD. "
             ),
         }
     ]
@@ -896,7 +898,7 @@ def ask_doctor(request: dict):
         if response.status_code != 200:
             return {
                 "reply": (
-                    "Maaf, layanan Tanya Dokter AI sedang tidak bisa diakses. "
+                    "Maaf, layanan Tanya Susan sedang tidak bisa diakses. "
                     f"Kode error: {response.status_code}"
                 )
             }
@@ -909,7 +911,7 @@ def ask_doctor(request: dict):
     except Exception as error:
         return {
             "reply": (
-                "Maaf, terjadi gangguan saat menghubungi layanan Tanya Dokter AI. "
+                "Maaf, terjadi gangguan saat menghubungi layanan Tanya Susan. "
                 f"Detail: {str(error)}"
             )
         }
