@@ -196,9 +196,11 @@ export default function ModernChatbot() {
     setInput("");
     setLoading(true);
 
-    try {
-      const endpoint = mode === "susan" ? "/ask-doctor" : "/chat";
+    const endpoint = mode === "susan" ? "/ask-doctor" : "/chat";
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
+    try {
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
@@ -208,7 +210,10 @@ export default function ModernChatbot() {
           message: userInput,
           history: updatedMessages,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -224,13 +229,19 @@ export default function ModernChatbot() {
         },
       ]);
     } catch (error) {
+      clearTimeout(timeoutId);
+
+      const errorMessage =
+        error.name === "AbortError"
+          ? "Request terlalu lama. Susan sedang sibuk, coba kirim ulang."
+          : "Server error. Backend belum bisa diakses atau CORS belum benar.\n\nDetail: " +
+            error.message;
+
       setMessages((prev) => [
         ...prev,
         {
           role: "bot",
-          text:
-            "Server error. Backend belum bisa diakses atau CORS belum benar.\n\nDetail: " +
-            error.message,
+          text: errorMessage,
         },
       ]);
     } finally {
