@@ -2,11 +2,18 @@ import { useEffect, useRef, useState } from "react";
 
 const API_URL = "https://r-hospital-api-v3.vercel.app";
 
-const quickPrompts = [
+const screeningPrompts = [
   "Saya demam 1 hari umur 19 tahun",
   "Saya batuk sudah 2 hari umur 19 tahun",
   "Saya sakit perut dan mual 1 hari",
   "Saya sesak napas dan nyeri dada",
+];
+
+const susanPrompts = [
+  "Susan, makanan apa yang bagus untuk menjaga imun?",
+  "Susan, bagaimana cara menjaga pola tidur?",
+  "Susan, apa tips hidup sehat untuk pekerja kantoran?",
+  "Susan, olahraga ringan apa yang bisa dilakukan di rumah?",
 ];
 
 function HospitalLogo({ small = false }) {
@@ -31,14 +38,24 @@ function HospitalLogo({ small = false }) {
     </div>
   );
 }
+
 export default function ModernChatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState("screening");
+
+  const getWelcomeMessage = (selectedMode = mode) => {
+    if (selectedMode === "susan") {
+      return "Halo! Saya Susan, asisten kesehatan AI R Hospital 👩‍⚕️\n\nSilakan tanyakan seputar kesehatan umum, pola makan, gaya hidup sehat, gejala ringan, atau perawatan awal yang aman.";
+    }
+
+    return "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.";
+  };
 
   const [messages, setMessages] = useState([
     {
       role: "bot",
-      text: "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
+      text: getWelcomeMessage("screening"),
     },
   ]);
 
@@ -49,6 +66,17 @@ export default function ModernChatbot() {
       behavior: "smooth",
     });
   }, [messages, loading]);
+
+  const changeMode = (selectedMode) => {
+    setMode(selectedMode);
+    setInput("");
+    setMessages([
+      {
+        role: "bot",
+        text: getWelcomeMessage(selectedMode),
+      },
+    ]);
+  };
 
   const sendMessage = async (customInput) => {
     const finalInput = customInput || input;
@@ -70,7 +98,9 @@ export default function ModernChatbot() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/chat`, {
+      const endpoint = mode === "susan" ? "/ask-doctor" : "/chat";
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -119,10 +149,12 @@ export default function ModernChatbot() {
     setMessages([
       {
         role: "bot",
-        text: "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.",
+        text: getWelcomeMessage(mode),
       },
     ]);
   };
+
+  const activePrompts = mode === "susan" ? susanPrompts : screeningPrompts;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#064e3b,_transparent_35%),linear-gradient(135deg,_#020617,_#0f172a,_#111827)] text-white flex items-center justify-center p-4 md:p-8">
@@ -138,31 +170,66 @@ export default function ModernChatbot() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-2xl bg-emerald-400/10 border border-emerald-400/20 p-4">
-                <div className="flex items-center gap-2 text-emerald-300 font-semibold">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  Backend Online
+              <button
+                onClick={() => changeMode("susan")}
+                className={`w-full text-left rounded-2xl border p-4 transition ${
+                  mode === "susan"
+                    ? "bg-emerald-400 text-slate-950 border-emerald-300"
+                    : "bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20"
+                }`}
+              >
+                <div
+                  className={`flex items-center gap-2 font-semibold ${
+                    mode === "susan" ? "text-slate-950" : "text-emerald-300"
+                  }`}
+                >
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      mode === "susan"
+                        ? "bg-slate-950"
+                        : "bg-emerald-400 animate-pulse"
+                    }`}
+                  ></span>
+                  Tanya Susan
                 </div>
-                <p className="text-sm text-slate-300 mt-2">
-                  Sistem siap menerima keluhan pasien.
-                </p>
-              </div>
 
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                <h2 className="font-semibold mb-2">Cara pakai</h2>
-                <p className="text-sm text-slate-300 leading-relaxed">
+                <p
+                  className={`text-sm mt-2 ${
+                    mode === "susan" ? "text-slate-900" : "text-slate-300"
+                  }`}
+                >
+                  Asisten kesehatan AI R Hospital.
+                </p>
+              </button>
+
+              <button
+                onClick={() => changeMode("screening")}
+                className={`w-full text-left rounded-2xl border p-4 transition ${
+                  mode === "screening"
+                    ? "bg-emerald-400 text-slate-950 border-emerald-300"
+                    : "bg-white/5 border-white/10 hover:bg-white/10"
+                }`}
+              >
+                <h2 className="font-semibold mb-2">Skrining Gejala</h2>
+                <p
+                  className={`text-sm leading-relaxed ${
+                    mode === "screening"
+                      ? "text-slate-900"
+                      : "text-slate-300"
+                  }`}
+                >
                   Tulis keluhan, umur, durasi gejala, dan gejala tambahan.
                   Contoh: “Saya batuk 2 hari umur 19 tahun”.
                 </p>
-              </div>
+              </button>
 
               <div className="rounded-2xl bg-amber-400/10 border border-amber-400/20 p-4">
                 <h2 className="font-semibold text-amber-200 mb-2">
                   Disclaimer
                 </h2>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Ini hanya skrining awal, bukan diagnosis pasti. Jika ada tanda
-                  tanda darurat, segera ke IGD.
+                  Ini hanya bantuan awal dan edukasi kesehatan. Diagnosis tetap
+                  perlu pemeriksaan langsung oleh tenaga medis.
                 </p>
               </div>
             </div>
@@ -185,10 +252,12 @@ export default function ModernChatbot() {
                 </div>
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold">
-                    R Hospital Chat
+                    {mode === "susan" ? "Tanya Susan" : "R Hospital Chat"}
                   </h1>
                   <p className="text-xs md:text-sm text-slate-300">
-                    Skrining awal keluhan pasien
+                    {mode === "susan"
+                      ? "Asisten kesehatan AI R Hospital"
+                      : "Skrining awal keluhan pasien"}
                   </p>
                 </div>
               </div>
@@ -236,7 +305,11 @@ export default function ModernChatbot() {
                         msg.role === "user" ? "text-right" : "text-left"
                       }`}
                     >
-                      {msg.role === "user" ? "Pasien" : "R Hospital Assistant"}
+                      {msg.role === "user"
+                        ? "Pasien"
+                        : mode === "susan"
+                        ? "Susan"
+                        : "R Hospital Assistant"}
                     </p>
                   </div>
                 </div>
@@ -263,7 +336,7 @@ export default function ModernChatbot() {
 
           <div className="px-5 md:px-7 pb-3">
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {quickPrompts.map((prompt) => (
+              {activePrompts.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => sendMessage(prompt)}
@@ -283,7 +356,11 @@ export default function ModernChatbot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Contoh: saya batuk sudah 2 hari umur 19 tahun..."
+                placeholder={
+                  mode === "susan"
+                    ? "Contoh: Susan, makanan apa yang bagus untuk menjaga imun?"
+                    : "Contoh: saya batuk sudah 2 hari umur 19 tahun..."
+                }
                 className="flex-1 bg-slate-950/40 border border-white/10 text-white placeholder:text-slate-500 rounded-2xl px-5 py-4 outline-none focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/20 transition"
               />
 
@@ -297,8 +374,9 @@ export default function ModernChatbot() {
             </div>
 
             <p className="text-[11px] text-slate-400 mt-3 text-center">
-              R Hospital Assistant hanya membantu skrining awal. Untuk kondisi
-              darurat, segera hubungi IGD atau fasilitas kesehatan terdekat.
+              {mode === "susan"
+                ? "Susan adalah asisten kesehatan AI untuk edukasi umum, bukan pengganti pemeriksaan dokter."
+                : "R Hospital Assistant hanya membantu skrining awal. Diagnosis tetap perlu pemeriksaan langsung oleh tenaga medis."}
             </p>
           </footer>
         </main>
