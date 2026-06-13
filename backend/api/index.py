@@ -976,10 +976,9 @@ gemini_response = requests.post(
             data = groq_response.json()
             reply = data["choices"][0]["message"]["content"]
 
-            return {
-                "reply": reply + "\n\n_(Dijawab via fallback Groq karena Gemini sedang limit.)_"
-            }
-
+         return {
+            "reply": reply
+        }
         except Exception as error:
             return {
                 "reply": (
