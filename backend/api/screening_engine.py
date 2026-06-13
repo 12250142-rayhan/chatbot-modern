@@ -268,7 +268,15 @@ def get_basic_care_advice(symptoms):
     return "\n".join(advice)
 
 
-def format_screening_reply(symptoms, age, duration_days, temperature, emergency_reasons, results, on_duty_doctor=None):
+def format_screening_reply(
+    symptoms,
+    age,
+    duration_days,
+    temperature,
+    emergency_reasons,
+    results,
+    on_duty_doctor=None
+):
     if emergency_reasons:
         return (
             "Tanda bahaya terdeteksi.\n\n"
@@ -285,6 +293,7 @@ def format_screening_reply(symptoms, age, duration_days, temperature, emergency_
         )
 
     top = results[0]
+
     lines = [
         "Hasil skrining awal R Hospital:",
         "",
@@ -305,26 +314,34 @@ def format_screening_reply(symptoms, age, duration_days, temperature, emergency_
 
     if len(results) > 1:
         lines.extend(["", "Kemungkinan lain:"])
+
         for item in results[1:]:
-            lines.append(f"- {item['name']} | skor {item['score']} | level {item['level']}")
+            lines.append(
+                f"- {item['name']} | skor {item['score']} | level {item['level']}"
+            )
 
     if duration_days is not None and duration_days >= top.get("doctor_recommended_after_days", 2):
-        if on_duty_doctor:
-            lines.extend([
-                "",
-                "Karena durasi/gejala perlu perhatian, Anda boleh menghubungi tenaga medis yang sedang bertugas:",
-                f"{on_duty_doctor['name']}",
-                f"{on_duty_doctor['phone']}",
-                f"Shift aktif: {on_duty_doctor['shift']}",
-            ])
-        else:
-            lines.extend(["", "Karena durasi/gejala perlu perhatian, sebaiknya konsultasi ke tenaga medis."])
+        lines.extend([
+            "",
+            "Berdasarkan durasi dan gejala, pasien disarankan konsultasi ke dokter Poli Umum.",
+            "",
+            "Silakan pilih jalur pendaftaran:",
+            "1. Umum - langsung mendapatkan dokter dan jadwal praktik.",
+            "2. BPJS - mendapatkan nomor antrian harian 1 sampai 150.",
+            "",
+            "Balas dengan: umum atau bpjs",
+        ])
+
     elif duration_days is not None and duration_days <= 1:
-        lines.extend(["", "Perawatan awal:", get_basic_care_advice(symptoms)])
+        lines.extend([
+            "",
+            "Perawatan awal:",
+            get_basic_care_advice(symptoms),
+        ])
 
     lines.extend([
         "",
-        "Catatan: ini bukan diagnosis pasti. Diagnosis tetap memerlukan pemeriksaan langsung oleh tenaga medis."
+        "Catatan: ini bukan diagnosis pasti. Diagnosis tetap memerlukan pemeriksaan langsung oleh tenaga medis.",
     ])
 
     return "\n".join(lines)
