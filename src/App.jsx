@@ -10,10 +10,10 @@ const screeningPrompts = [
 ];
 
 const susanPrompts = [
-  "Susan, makanan apa yang bagus untuk menjaga imun?",
-  "Susan, bagaimana cara menjaga pola tidur?",
-  "Susan, apa tips hidup sehat untuk pekerja kantoran?",
-  "Susan, olahraga ringan apa yang bisa dilakukan di rumah?",
+  "Makanan apa yang bagus untuk menjaga imun?",
+  "Bagaimana cara menjaga pola tidur?",
+  "Apa tips hidup sehat untuk pekerja kantoran?",
+  "Olahraga ringan apa yang bisa dilakukan di rumah?",
 ];
 
 function HospitalLogo({ small = false }) {
@@ -35,6 +35,18 @@ function HospitalLogo({ small = false }) {
         <rect x="20" y="42" width="8" height="12" rx="1" fill="#cbd5e1" />
         <rect x="36" y="42" width="8" height="12" rx="1" fill="#cbd5e1" />
       </svg>
+    </div>
+  );
+}
+
+function SusanAvatar({ small = false }) {
+  const size = small ? "w-10 h-10" : "w-14 h-14";
+
+  return (
+    <div
+      className={`${size} rounded-2xl bg-gradient-to-br from-fuchsia-400 via-emerald-300 to-cyan-300 flex items-center justify-center shadow-lg shadow-emerald-500/20`}
+    >
+      <span className={small ? "text-xl" : "text-2xl"}>👩‍⚕️</span>
     </div>
   );
 }
@@ -155,6 +167,7 @@ export default function ModernChatbot() {
   };
 
   const activePrompts = mode === "susan" ? susanPrompts : screeningPrompts;
+  const isSusan = mode === "susan";
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_#064e3b,_transparent_35%),linear-gradient(135deg,_#020617,_#0f172a,_#111827)] text-white flex items-center justify-center p-4 md:p-8">
@@ -172,64 +185,74 @@ export default function ModernChatbot() {
             <div className="space-y-4">
               <button
                 onClick={() => changeMode("susan")}
-                className={`w-full text-left rounded-2xl border p-4 transition ${
-                  mode === "susan"
-                    ? "bg-emerald-400 text-slate-950 border-emerald-300"
-                    : "bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20"
+                className={`w-full text-left rounded-3xl border p-5 transition group ${
+                  isSusan
+                    ? "bg-gradient-to-br from-emerald-400 via-teal-300 to-cyan-300 text-slate-950 border-emerald-200 shadow-lg shadow-emerald-500/20"
+                    : "bg-white/5 border-white/10 hover:bg-white/10"
                 }`}
               >
-                <div
-                  className={`flex items-center gap-2 font-semibold ${
-                    mode === "susan" ? "text-slate-950" : "text-emerald-300"
-                  }`}
-                >
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${
-                      mode === "susan"
-                        ? "bg-slate-950"
-                        : "bg-emerald-400 animate-pulse"
-                    }`}
-                  ></span>
-                  Tanya Susan
+                <div className="flex items-center gap-3">
+                  <SusanAvatar small />
+                  <div>
+                    <h2
+                      className={`font-bold ${
+                        isSusan ? "text-slate-950" : "text-white"
+                      }`}
+                    >
+                      Tanya Susan
+                    </h2>
+                    <p
+                      className={`text-sm mt-1 ${
+                        isSusan ? "text-slate-800" : "text-slate-300"
+                      }`}
+                    >
+                      Chat AI kesehatan yang lebih fleksibel.
+                    </p>
+                  </div>
                 </div>
-
-                <p
-                  className={`text-sm mt-2 ${
-                    mode === "susan" ? "text-slate-900" : "text-slate-300"
-                  }`}
-                >
-                  Asisten kesehatan AI R Hospital.
-                </p>
               </button>
 
               <button
                 onClick={() => changeMode("screening")}
-                className={`w-full text-left rounded-2xl border p-4 transition ${
-                  mode === "screening"
-                    ? "bg-emerald-400 text-slate-950 border-emerald-300"
+                className={`w-full text-left rounded-3xl border p-5 transition ${
+                  !isSusan
+                    ? "bg-emerald-400 text-slate-950 border-emerald-300 shadow-lg shadow-emerald-500/20"
                     : "bg-white/5 border-white/10 hover:bg-white/10"
                 }`}
               >
-                <h2 className="font-semibold mb-2">Skrining Gejala</h2>
-                <p
-                  className={`text-sm leading-relaxed ${
-                    mode === "screening"
-                      ? "text-slate-900"
-                      : "text-slate-300"
-                  }`}
-                >
-                  Tulis keluhan, umur, durasi gejala, dan gejala tambahan.
-                  Contoh: “Saya batuk 2 hari umur 19 tahun”.
-                </p>
+                <div className="flex items-center gap-3">
+                  <HospitalLogo small />
+                  <div>
+                    <h2 className="font-bold">Skrining Gejala</h2>
+                    <p
+                      className={`text-sm mt-1 ${
+                        !isSusan ? "text-slate-800" : "text-slate-300"
+                      }`}
+                    >
+                      Analisis awal berdasarkan keluhan pasien.
+                    </p>
+                  </div>
+                </div>
               </button>
 
-              <div className="rounded-2xl bg-amber-400/10 border border-amber-400/20 p-4">
-                <h2 className="font-semibold text-amber-200 mb-2">
-                  Disclaimer
+              <div
+                className={`rounded-3xl border p-5 ${
+                  isSusan
+                    ? "bg-fuchsia-400/10 border-fuchsia-300/20"
+                    : "bg-amber-400/10 border-amber-400/20"
+                }`}
+              >
+                <h2
+                  className={`font-semibold mb-2 ${
+                    isSusan ? "text-fuchsia-200" : "text-amber-200"
+                  }`}
+                >
+                  {isSusan ? "Mode Susan" : "Disclaimer"}
                 </h2>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Ini hanya bantuan awal dan edukasi kesehatan. Diagnosis tetap
-                  perlu pemeriksaan langsung oleh tenaga medis.
+                  {isSusan
+                    ? "Cocok untuk tanya jawab kesehatan umum, pola makan, kebiasaan sehat, dan edukasi ringan."
+                    : "Ini hanya skrining awal, bukan diagnosis pasti. Diagnosis tetap perlu pemeriksaan langsung oleh tenaga medis."}
                 </p>
               </div>
             </div>
@@ -244,18 +267,25 @@ export default function ModernChatbot() {
         </aside>
 
         <main className="rounded-3xl border border-white/10 bg-white/10 backdrop-blur-xl shadow-2xl flex flex-col overflow-hidden">
-          <header className="px-5 md:px-7 py-5 border-b border-white/10 bg-white/5 flex items-center justify-between">
+          <header
+            className={`px-5 md:px-7 py-5 border-b border-white/10 flex items-center justify-between ${
+              isSusan
+                ? "bg-gradient-to-r from-fuchsia-500/10 via-emerald-400/10 to-cyan-400/10"
+                : "bg-white/5"
+            }`}
+          >
             <div>
               <div className="flex items-center gap-3">
                 <div className="md:hidden">
-                  <HospitalLogo small />
+                  {isSusan ? <SusanAvatar small /> : <HospitalLogo small />}
                 </div>
+
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold">
-                    {mode === "susan" ? "Tanya Susan" : "R Hospital Chat"}
+                    {isSusan ? "Tanya Susan" : "R Hospital Chat"}
                   </h1>
                   <p className="text-xs md:text-sm text-slate-300">
-                    {mode === "susan"
+                    {isSusan
                       ? "Asisten kesehatan AI R Hospital"
                       : "Skrining awal keluhan pasien"}
                   </p>
@@ -268,6 +298,21 @@ export default function ModernChatbot() {
               Online
             </div>
           </header>
+
+          {isSusan && (
+            <div className="px-5 md:px-7 py-4 border-b border-white/10 bg-slate-950/20">
+              <div className="rounded-3xl bg-gradient-to-r from-fuchsia-400/10 via-emerald-400/10 to-cyan-400/10 border border-white/10 p-4 flex items-center gap-4">
+                <SusanAvatar small />
+                <div>
+                  <h2 className="font-bold">Halo, saya Susan 👩‍⚕️</h2>
+                  <p className="text-sm text-slate-300 mt-1">
+                    Tanyakan seputar pola makan, gaya hidup sehat, keluhan
+                    ringan, atau edukasi kesehatan umum.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <section className="flex-1 overflow-y-auto p-5 md:p-7 space-y-5">
             {messages.map((msg, index) => (
@@ -286,6 +331,8 @@ export default function ModernChatbot() {
                     <div className="h-9 w-9 shrink-0 rounded-2xl bg-emerald-400 text-slate-950 flex items-center justify-center text-sm font-bold">
                       U
                     </div>
+                  ) : isSusan ? (
+                    <SusanAvatar small />
                   ) : (
                     <HospitalLogo small />
                   )}
@@ -295,6 +342,8 @@ export default function ModernChatbot() {
                       className={`px-5 py-4 rounded-3xl leading-relaxed whitespace-pre-line shadow-lg ${
                         msg.role === "user"
                           ? "bg-emerald-400 text-slate-950 rounded-tr-md"
+                          : isSusan
+                          ? "bg-gradient-to-br from-white/15 to-fuchsia-400/10 text-white border border-fuchsia-300/20 rounded-tl-md"
                           : "bg-white/10 text-white border border-white/10 rounded-tl-md"
                       }`}
                     >
@@ -307,7 +356,7 @@ export default function ModernChatbot() {
                     >
                       {msg.role === "user"
                         ? "Pasien"
-                        : mode === "susan"
+                        : isSusan
                         ? "Susan"
                         : "R Hospital Assistant"}
                     </p>
@@ -319,7 +368,7 @@ export default function ModernChatbot() {
             {loading && (
               <div className="flex justify-start">
                 <div className="flex gap-3 max-w-[78%]">
-                  <HospitalLogo small />
+                  {isSusan ? <SusanAvatar small /> : <HospitalLogo small />}
                   <div className="bg-white/10 text-white px-5 py-4 rounded-3xl rounded-tl-md border border-white/10">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-slate-300 animate-bounce"></span>
@@ -335,13 +384,17 @@ export default function ModernChatbot() {
           </section>
 
           <div className="px-5 md:px-7 pb-3">
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {activePrompts.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => sendMessage(prompt)}
                   disabled={loading}
-                  className="shrink-0 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 text-xs text-slate-200 transition disabled:opacity-50"
+                  className={`rounded-2xl border px-4 py-3 text-left text-xs md:text-sm transition disabled:opacity-50 ${
+                    isSusan
+                      ? "bg-fuchsia-400/10 hover:bg-fuchsia-400/20 border-fuchsia-300/20 text-fuchsia-50"
+                      : "bg-white/5 hover:bg-white/10 border-white/10 text-slate-200"
+                  }`}
                 >
                   {prompt}
                 </button>
@@ -357,24 +410,32 @@ export default function ModernChatbot() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={
-                  mode === "susan"
-                    ? "Contoh: Susan, makanan apa yang bagus untuk menjaga imun?"
+                  isSusan
+                    ? "Tulis pertanyaan untuk Susan..."
                     : "Contoh: saya batuk sudah 2 hari umur 19 tahun..."
                 }
-                className="flex-1 bg-slate-950/40 border border-white/10 text-white placeholder:text-slate-500 rounded-2xl px-5 py-4 outline-none focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/20 transition"
+                className={`flex-1 bg-slate-950/40 border text-white placeholder:text-slate-500 rounded-2xl px-5 py-4 outline-none focus:ring-2 transition ${
+                  isSusan
+                    ? "border-fuchsia-300/30 focus:border-fuchsia-300/70 focus:ring-fuchsia-300/20"
+                    : "border-white/10 focus:border-emerald-400/60 focus:ring-emerald-400/20"
+                }`}
               />
 
               <button
                 onClick={() => sendMessage()}
                 disabled={loading || !input.trim()}
-                className="bg-emerald-400 hover:bg-emerald-300 transition px-5 md:px-7 rounded-2xl text-slate-950 font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/10"
+                className={`transition px-5 md:px-7 rounded-2xl font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${
+                  isSusan
+                    ? "bg-gradient-to-r from-fuchsia-300 to-emerald-300 hover:opacity-90 text-slate-950 shadow-fuchsia-500/10"
+                    : "bg-emerald-400 hover:bg-emerald-300 text-slate-950 shadow-emerald-500/10"
+                }`}
               >
                 Kirim
               </button>
             </div>
 
             <p className="text-[11px] text-slate-400 mt-3 text-center">
-              {mode === "susan"
+              {isSusan
                 ? "Susan adalah asisten kesehatan AI untuk edukasi umum, bukan pengganti pemeriksaan dokter."
                 : "R Hospital Assistant hanya membantu skrining awal. Diagnosis tetap perlu pemeriksaan langsung oleh tenaga medis."}
             </p>
