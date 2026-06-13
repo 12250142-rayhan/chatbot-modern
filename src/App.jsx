@@ -338,7 +338,7 @@ export default function ModernChatbot() {
                 </h2>
                 <p className="text-sm text-slate-300 leading-relaxed">
                   {isSusan
-                    ? "Cocok untuk tanya jawab kesehatan umum, pola makan, kebiasaan sehat, dan edukasi ringan."
+                    ? "Tanya jawab seputar kesehatan umum, pola makan dan kebiasaan hidup sehat."
                     : "Ini hanya skrining awal, bukan diagnosis pasti. Diagnosis tetap perlu pemeriksaan langsung oleh tenaga medis."}
                 </p>
               </div>
@@ -373,7 +373,7 @@ export default function ModernChatbot() {
                   </h1>
                   <p className="text-xs md:text-sm text-slate-300">
                     {isSusan
-                      ? "Asisten kesehatan AI R Hospital"
+                      ? "Tanya Seputar Kesehatan"
                       : "Skrining awal keluhan pasien"}
                   </p>
                 </div>
