@@ -1,0 +1,377 @@
+import json
+import os
+import re
+from functools import lru_cache
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_DATASET_PATH = os.path.join(BASE_DIR, "data", "disease_dataset.json")
+
+
+def merge_user_text(history, current_message):
+    texts = []
+
+    if history:
+        for msg in history:
+            if msg.get("role") == "user":
+                value = msg.get("text", "")
+                if value:
+                    texts.append(value)
+
+    if current_message and current_message not in texts:
+        texts.append(current_message)
+
+    return " ".join(texts).lower()
+
+
+@lru_cache(maxsize=1)
+def load_dataset(dataset_path=DEFAULT_DATASET_PATH):
+    with open(dataset_path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def is_negated(text, keyword):
+    patterns = [
+        rf"(tidak ada|ga ada|gak ada|nggak ada|tanpa)\s+{re.escape(keyword)}",
+        rf"(tidak|ga|gak|nggak|enggak)\s+{re.escape(keyword)}",
+        rf"{re.escape(keyword)}\s+(tidak ada|ga ada|gak ada|nggak ada)",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
+def detect_symptoms(text, dataset=None):
+    dataset = dataset or load_dataset()
+    symptom_aliases = dataset.get("symptom_aliases", {})
+    detected = []
+
+    for symptom, aliases in symptom_aliases.items():
+        for alias in aliases:
+            if alias in text and not is_negated(text, alias):
+                detected.append(symptom)
+                break
+
+    return sorted(set(detected))
+
+
+def detect_age(text):
+    patterns = [
+        r"(umur|usia)\s*(saya|pasien)?\s*(\d{1,3})",
+        r"(saya|pasien)\s*(berumur|berusia)\s*(\d{1,3})",
+        r"(\d{1,3})\s*(tahun|thn|th)\s*(umur|usia)",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            numbers = re.findall(r"\d{1,3}", match.group(0))
+            if numbers:
+                return int(numbers[0])
+
+    return None
+
+
+def detect_duration_days(text):
+    durations = []
+
+    patterns = [
+        (r"(\d+)\s*hari", 1),
+        (r"(\d+)\s*minggu", 7),
+        (r"(\d+)\s*bulan", 30),
+        (r"(\d+)\s*jam", 1 / 24),
+    ]
+
+    for pattern, multiplier in patterns:
+        for match in re.finditer(pattern, text):
+            durations.append(int(match.group(1)) * multiplier)
+
+    year_patterns = [
+        r"(selama|sejak|sudah|kurang lebih|sekitar)\s*(\d+)\s*tahun",
+        r"(\d+)\s*tahun\s*(terakhir|lamanya)",
+    ]
+
+    for pattern in year_patterns:
+        for match in re.finditer(pattern, text):
+            numbers = re.findall(r"\d+", match.group(0))
+            if numbers:
+                durations.append(int(numbers[0]) * 365)
+
+    if "kemarin" in text:
+        durations.append(1)
+
+    if "hari ini" in text or "sejak tadi" in text:
+        durations.append(0.5)
+
+    if durations:
+        return int(max(durations))
+
+    return None
+
+
+def detect_temperature(text):
+    match = re.search(r"(\d{2}(?:[.,]\d)?)\s*(c|celcius|derajat)", text)
+    if match:
+        return float(match.group(1).replace(",", "."))
+    return None
+
+
+def detect_negative_info(text):
+    negative_patterns = [
+        r"\btidak ada\b",
+        r"\bga ada\b",
+        r"\bgak ada\b",
+        r"\bnggak ada\b",
+        r"\btanpa\b",
+        r"\btidak\b",
+        r"\benggak\b",
+        r"\bnggak\b",
+        r"\bga\b",
+        r"\bgak\b",
+        r"\bg\b",
+    ]
+    return any(re.search(pattern, text) for pattern in negative_patterns)
+
+
+def emergency_check(text, symptoms, temperature, dataset=None):
+    dataset = dataset or load_dataset()
+    reasons = []
+
+    for keyword in dataset.get("global_emergency_keywords", []):
+        if keyword in text:
+            reasons.append(keyword)
+
+    if temperature and temperature >= 39.5:
+        reasons.append("demam sangat tinggi")
+
+    # Catatan: danger_symptoms di dataset dipakai untuk menaikkan skor penyakit,
+    # bukan otomatis darurat. Darurat hanya diambil dari global_emergency_keywords
+    # dan emergency_symptoms agar hasil tidak terlalu agresif.
+
+    emergency_symptoms = [
+        "sesak napas",
+        "nyeri dada",
+        "batuk darah",
+        "kejang",
+        "pingsan",
+        "lemah separuh badan",
+        "sakit kepala hebat",
+        "penglihatan buram",
+        "urine darah",
+        "bab berdarah",
+    ]
+
+    for symptom in emergency_symptoms:
+        if symptom in symptoms:
+            reasons.append(symptom)
+
+    return sorted(set(reasons))
+
+
+def ask_missing_info(symptoms, age, duration_days, temperature, text):
+    missing = []
+
+    if age is None:
+        missing.append("umur pasien")
+
+    if duration_days is None:
+        missing.append("sudah berapa lama gejalanya")
+
+    if "demam" in symptoms and temperature is None:
+        missing.append("suhu tubuh berapa derajat")
+
+    if len(symptoms) <= 1 and not detect_negative_info(text):
+        missing.append("apakah ada gejala lain atau tidak ada gejala lain")
+
+    return missing
+
+
+def classify_diseases(symptoms, duration_days=None, dataset=None, top_n=3):
+    dataset = dataset or load_dataset()
+    results = []
+
+    for disease in dataset.get("diseases", []):
+        score = 0
+        matched_main = []
+        matched_additional = []
+        matched_danger = []
+
+        main_symptoms = disease.get("main_symptoms", [])
+        additional_symptoms = disease.get("additional_symptoms", [])
+        danger_symptoms = disease.get("danger_symptoms", [])
+
+        for symptom in symptoms:
+            if symptom in main_symptoms:
+                score += 3
+                matched_main.append(symptom)
+            elif symptom in additional_symptoms:
+                score += 1
+                matched_additional.append(symptom)
+
+            if symptom in danger_symptoms:
+                score += 5
+                matched_danger.append(symptom)
+
+        min_duration = disease.get("min_duration_days", 0)
+        if duration_days is not None and duration_days >= min_duration:
+            score += 1
+
+        # Kalau penyakit butuh durasi tertentu, tapi durasi user belum masuk, score dikurangi agar tidak terlalu agresif.
+        if duration_days is not None and min_duration > 0 and duration_days < min_duration:
+            score -= 2
+
+        if score <= 0:
+            continue
+
+        max_possible_score = (len(main_symptoms) * 3) + len(additional_symptoms) + (len(danger_symptoms) * 5) + 1
+        match_percent = round((score / max_possible_score) * 100, 1) if max_possible_score else 0
+
+        results.append({
+            "code": disease.get("code"),
+            "name": disease.get("name"),
+            "category": disease.get("category"),
+            "level": disease.get("level"),
+            "score": score,
+            "match_percent": match_percent,
+            "matched_main": matched_main,
+            "matched_additional": matched_additional,
+            "matched_danger": matched_danger,
+            "explanation": disease.get("explanation"),
+            "advice": disease.get("advice"),
+            "doctor_recommended_after_days": disease.get("doctor_recommended_after_days", 2),
+        })
+
+    results.sort(key=lambda item: (item["score"], item["match_percent"]), reverse=True)
+    return results[:top_n]
+
+
+def get_basic_care_advice(symptoms):
+    advice = []
+
+    if "demam" in symptoms or "sakit kepala" in symptoms or "nyeri otot" in symptoms:
+        advice.append("- Untuk demam/nyeri: gunakan obat bebas seperti paracetamol sesuai aturan pakai pada kemasan bila tidak ada alergi/kontraindikasi.")
+
+    if "batuk" in symptoms:
+        advice.append("- Untuk batuk: perbanyak minum air hangat, hindari asap/debu, dan gunakan masker.")
+
+    if "pilek" in symptoms or "hidung tersumbat" in symptoms:
+        advice.append("- Untuk pilek/hidung tersumbat: istirahat cukup dan minum hangat.")
+
+    if "diare" in symptoms or "muntah" in symptoms:
+        advice.append("- Untuk diare/muntah: utamakan cairan oralit/cairan elektrolit untuk mencegah dehidrasi.")
+
+    if "nyeri ulu hati" in symptoms or "perut kembung" in symptoms:
+        advice.append("- Untuk keluhan lambung: makan porsi kecil tapi sering, hindari kopi, pedas, asam, dan jangan langsung rebahan setelah makan.")
+
+    if not advice:
+        advice.append("- Istirahat cukup, minum air yang cukup, makan teratur, dan pantau perkembangan gejala.")
+
+    advice.append("- Jika muncul tanda bahaya seperti sesak, nyeri dada, pingsan, kejang, batuk darah, atau kondisi memburuk, segera ke IGD.")
+
+    return "\n".join(advice)
+
+
+def format_screening_reply(symptoms, age, duration_days, temperature, emergency_reasons, results, on_duty_doctor=None):
+    if emergency_reasons:
+        return (
+            "Tanda bahaya terdeteksi.\n\n"
+            f"Alasan: {', '.join(emergency_reasons)}.\n\n"
+            "Kondisi ini termasuk urgent. Sebaiknya segera ke IGD atau fasilitas kesehatan terdekat.\n\n"
+            "Catatan: chatbot ini hanya membantu skrining awal dan bukan pengganti diagnosis dokter."
+        )
+
+    if not results:
+        return (
+            "Saya menangkap gejala: " + ", ".join(symptoms) + ".\n\n"
+            "Namun gejala belum cukup spesifik untuk dicocokkan ke dataset penyakit. "
+            "Silakan lengkapi keluhan lain seperti durasi, suhu, dan gejala penyerta."
+        )
+
+    top = results[0]
+    lines = [
+        "Hasil skrining awal R Hospital:",
+        "",
+        f"Gejala terdeteksi: {', '.join(symptoms)}.",
+        f"Umur: {age} tahun." if age is not None else "Umur: belum diisi.",
+        f"Durasi: sekitar {duration_days} hari." if duration_days is not None else "Durasi: belum diisi.",
+        f"Suhu: {temperature}°C." if temperature is not None else "Suhu: belum diisi.",
+        "",
+        f"Kemungkinan tertinggi: {top['name']}",
+        f"Kategori: {top['category']}",
+        f"Tingkat perhatian: {top['level']}",
+        f"Skor kecocokan: {top['score']} ({top['match_percent']}%)",
+        "",
+        f"Penjelasan: {top['explanation']}",
+        "",
+        f"Saran awal: {top['advice']}",
+    ]
+
+    if len(results) > 1:
+        lines.extend(["", "Kemungkinan lain:"])
+        for item in results[1:]:
+            lines.append(f"- {item['name']} | skor {item['score']} | level {item['level']}")
+
+    if duration_days is not None and duration_days >= top.get("doctor_recommended_after_days", 2):
+        if on_duty_doctor:
+            lines.extend([
+                "",
+                "Karena durasi/gejala perlu perhatian, Anda boleh menghubungi tenaga medis yang sedang bertugas:",
+                f"{on_duty_doctor['name']}",
+                f"{on_duty_doctor['phone']}",
+                f"Shift aktif: {on_duty_doctor['shift']}",
+            ])
+        else:
+            lines.extend(["", "Karena durasi/gejala perlu perhatian, sebaiknya konsultasi ke tenaga medis."])
+    elif duration_days is not None and duration_days <= 1:
+        lines.extend(["", "Perawatan awal:", get_basic_care_advice(symptoms)])
+
+    lines.extend([
+        "",
+        "Catatan: ini bukan diagnosis pasti. Diagnosis tetap memerlukan pemeriksaan langsung oleh tenaga medis."
+    ])
+
+    return "\n".join(lines)
+
+
+def screening_reply(message, history=None, on_duty_doctor=None):
+    dataset = load_dataset()
+    text = merge_user_text(history or [], message)
+    symptoms = detect_symptoms(text, dataset)
+    age = detect_age(text)
+    duration_days = detect_duration_days(text)
+    temperature = detect_temperature(text)
+
+    if not symptoms:
+        return (
+            "Boleh jelaskan keluhan utama Anda? Contohnya batuk, demam, pilek, "
+            "sakit tenggorokan, mual, muntah, diare, nyeri perut, ruam, gatal, "
+            "nyeri kencing, sakit gigi, mata merah, telinga sakit, sesak, atau nyeri dada."
+        )
+
+    emergency_reasons = emergency_check(text, symptoms, temperature, dataset)
+    if emergency_reasons:
+        return format_screening_reply(
+            symptoms=symptoms,
+            age=age,
+            duration_days=duration_days,
+            temperature=temperature,
+            emergency_reasons=emergency_reasons,
+            results=[],
+            on_duty_doctor=on_duty_doctor,
+        )
+
+    missing = ask_missing_info(symptoms, age, duration_days, temperature, text)
+    if missing:
+        return (
+            f"Saya menangkap gejala: {', '.join(symptoms)}.\n\n"
+            f"Boleh lengkapi dulu: {', '.join(missing)}?"
+        )
+
+    results = classify_diseases(symptoms, duration_days, dataset, top_n=3)
+
+    return format_screening_reply(
+        symptoms=symptoms,
+        age=age,
+        duration_days=duration_days,
+        temperature=temperature,
+        emergency_reasons=emergency_reasons,
+        results=results,
+        on_duty_doctor=on_duty_doctor,
+    )
