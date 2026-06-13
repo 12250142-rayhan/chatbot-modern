@@ -99,8 +99,9 @@ def test():
 def version():
     return {
         "app": "R Hospital Backend",
-        "version": "duration-shift-fix-v2",
-        "shift": "00-08 / 08-16 / 16-00",
+        "version": "gemini-susan-v1",
+        "ai_provider": "gemini",
+        "model": GEMINI_MODEL,
         "duration_fix": True
     }
 
@@ -859,8 +860,6 @@ def ask_doctor(request: dict):
                 "perawatan awal yang aman, penjelasan obat umum, dan kapan pasien perlu periksa. "
                 "Jangan memberikan diagnosis pasti. "
                 "Jangan membuat resep obat keras atau antibiotik. "
-                "Jika ada tanda bahaya seperti sesak napas, nyeri dada, pingsan, kejang, batuk darah, "
-                "atau penurunan kesadaran, arahkan pasien segera ke IGD. "
             ),
         }
     ]
