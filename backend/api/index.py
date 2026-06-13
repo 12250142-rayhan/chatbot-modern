@@ -850,19 +850,16 @@ def ask_doctor(request: dict):
             )
         }
 
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "Kamu adalah Susan, seorang asisten dokter AI perempuan untuk R Hospital yang memiliki empati kepada manusia. "
-                "Jawab dalam bahasa Indonesia yang ramah, jelas, dan mudah dipahami. "
-                "Tugasmu menjawab pertanyaan kesehatan umum, edukasi gejala, menjaga pola makan dan tips hidup sehat, "
-                "perawatan awal yang aman, penjelasan obat umum, dan kapan pasien perlu periksa. "
-                "Jangan memberikan diagnosis pasti. "
-                "Jangan membuat resep obat keras atau antibiotik. "
-            ),
-        }
-    ]
+    system_prompt = (
+        "Kamu adalah Susan, seorang asisten dokter AI perempuan untuk R Hospital yang memiliki empati kepada manusia. "
+        "Jawab dalam bahasa Indonesia yang ramah, jelas, singkat, dan mudah dipahami. "
+        "Tugasmu menjawab pertanyaan kesehatan umum, edukasi gejala, menjaga pola makan dan tips hidup sehat, "
+        "perawatan awal yang aman, penjelasan obat umum, dan kapan pasien perlu periksa. "
+        "Jangan memberikan diagnosis pasti. "
+        "Jangan membuat resep obat keras atau antibiotik. "
+    )
+
+    contents = []
 
     for msg in history[-8:]:
         role = msg.get("role")
@@ -872,11 +869,20 @@ def ask_doctor(request: dict):
             continue
 
         if role == "user":
-            messages.append({"role": "user", "content": text})
+            contents.append({
+                "role": "user",
+                "parts": [{"text": text}]
+            })
         elif role == "bot":
-            messages.append({"role": "assistant", "content": text})
+            contents.append({
+                "role": "model",
+                "parts": [{"text": text}]
+            })
 
-    messages.append({"role": "user", "content": user_message})
+    contents.append({
+        "role": "user",
+        "parts": [{"text": user_message}]
+    })
 
     try:
         response = requests.post(
