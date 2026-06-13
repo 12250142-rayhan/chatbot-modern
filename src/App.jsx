@@ -40,15 +40,91 @@ function HospitalLogo({ small = false }) {
 }
 
 function SusanAvatar({ small = false }) {
-  const size = small ? "w-10 h-10" : "w-14 h-14";
-  const textSize = small ? "text-lg" : "text-2xl";
+  const outerSize = small ? "w-10 h-10" : "w-16 h-16";
+  const ringSize = small ? "w-12 h-12" : "w-20 h-20";
+  const badgeSize = small ? "w-4 h-4 text-[9px]" : "w-5 h-5 text-[10px]";
 
   return (
-    <div
-      className={`${size} rounded-2xl bg-gradient-to-br from-emerald-300 via-cyan-300 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-white/30`}
-    >
-      <div className="w-[72%] h-[72%] rounded-xl bg-slate-950/80 flex items-center justify-center">
-        <span className={`${textSize} font-black text-emerald-300`}>S</span>
+    <div className="relative flex items-center justify-center">
+      <div
+        className={`absolute ${ringSize} rounded-full bg-gradient-to-br from-cyan-400/30 via-emerald-300/20 to-fuchsia-400/20 blur-md animate-pulse`}
+      />
+
+      <div
+        className={`relative ${outerSize} rounded-2xl bg-gradient-to-br from-fuchsia-400 via-cyan-300 to-emerald-300 p-[2px] shadow-[0_0_25px_rgba(45,212,191,0.35)]`}
+      >
+        <div className="w-full h-full rounded-2xl bg-slate-900/95 flex items-center justify-center overflow-hidden">
+          <svg
+            viewBox="0 0 64 64"
+            className="w-full h-full"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect width="64" height="64" rx="18" fill="url(#bgGrad)" />
+
+            <circle cx="32" cy="25" r="13" fill="#FDE68A" />
+
+            <path
+              d="M18 24c0-8 6-14 14-14s14 6 14 14v6H18v-6z"
+              fill="#1E293B"
+            />
+            <path
+              d="M20 24c0-6.8 5.2-12 12-12s12 5.2 12 12v2c-1.5-2.3-4-3.5-7.3-3.5H27.3c-3.3 0-5.8 1.2-7.3 3.5v-2z"
+              fill="#0F172A"
+            />
+
+            <ellipse cx="32" cy="27" rx="10.5" ry="11.5" fill="#F8D7C4" />
+
+            <circle cx="28" cy="27" r="1.2" fill="#111827" />
+            <circle cx="36" cy="27" r="1.2" fill="#111827" />
+
+            <path
+              d="M28 31c1.2 1.2 2.5 1.8 4 1.8s2.8-.6 4-1.8"
+              stroke="#7C2D12"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+
+            <path
+              d="M18 56c1.5-10.5 7-16 14-16s12.5 5.5 14 16H18z"
+              fill="#F8FAFC"
+            />
+            <path d="M26 40h12l2 16H24l2-16z" fill="#E2E8F0" />
+
+            <path d="M28.5 40h7L32 46l-3.5-6z" fill="#14B8A6" />
+
+            <path
+              d="M26 43v6a6 6 0 0012 0v-2"
+              stroke="#475569"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+            <circle cx="38.5" cy="47.5" r="2.4" fill="#94A3B8" />
+            <circle cx="38.5" cy="47.5" r="1.2" fill="#E2E8F0" />
+
+            <rect x="10" y="10" width="10" height="10" rx="3" fill="#10B981" />
+            <path
+              d="M15 12.3v5.4M12.3 15h5.4"
+              stroke="white"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+
+            <defs>
+              <linearGradient id="bgGrad" x1="8" y1="6" x2="58" y2="58">
+                <stop stopColor="#1E293B" />
+                <stop offset="0.55" stopColor="#164E63" />
+                <stop offset="1" stopColor="#0F172A" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+
+      <div
+        className={`absolute -bottom-1 -right-1 ${badgeSize} rounded-full bg-emerald-400 text-slate-900 font-bold flex items-center justify-center shadow-lg animate-bounce`}
+      >
+        +
       </div>
     </div>
   );
@@ -58,12 +134,14 @@ export default function ModernChatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("screening");
+
   const cleanBotText = (text = "") => {
-  return text
-    .replace(/\*\*/g, "")
-    .replace(/\*/g, "")
-    .trim();
-};
+    return text
+      .replace(/\*\*/g, "")
+      .replace(/\*/g, "")
+      .replace(/#{1,6}\s?/g, "")
+      .trim();
+  };
 
   const getWelcomeMessage = (selectedMode = mode) => {
     if (selectedMode === "susan") {
