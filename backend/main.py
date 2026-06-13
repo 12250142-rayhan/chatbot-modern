@@ -35,10 +35,22 @@ def home():
 
 
 @app.post("/chat")
-def chat(request: ChatRequest):
-    reply = medical_agent(
-        user_message=request.message,
-        history=request.history,
+def chat(request: dict):
+    user_message = request.get("message", "")
+    history = request.get("history", [])
+
+    if waiting_for_registration_choice(history):
+        reply = handle_registration_choice(user_message)
+        return {
+            "reply": reply
+        }
+
+    reply = screening_reply(
+        user_message,
+        history,
+        on_duty_doctor=get_on_duty_doctor()
     )
 
-    return {"reply": reply}
+    return {
+        "reply": reply
+    }
