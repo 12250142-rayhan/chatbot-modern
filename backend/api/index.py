@@ -21,9 +21,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-OPENCLAW_API_KEY = os.getenv("OPENCLAW_API_KEY", "")
-OPENCLAW_BASE_URL = os.getenv("OPENCLAW_BASE_URL", "")
-OPENCLAW_MODEL = os.getenv("OPENCLAW_MODEL", "google/gemini-2.5-flash")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 DOCTOR_SCHEDULE = {
     0: {  # Senin
@@ -839,13 +838,13 @@ def ask_doctor(request: dict):
 
     if not user_message.strip():
         return {
-            "reply": "Silakan tuliskan pertanyaan kesehatan yang ingin Anda tanyakan."
+            "reply": "Silakan tuliskan pertanyaan kesehatan yang ingin Anda tanyakan kepada Susan."
         }
 
-    if not OPENCLAW_BASE_URL or not OPENCLAW_API_KEY:
+    if not GEMINI_API_KEY:
         return {
             "reply": (
-                "Fitur Tanya Susan belum aktif karena konfigurasi OpenClaw belum tersedia. "
+                "Fitur Tanya Susan belum aktif karena konfigurasi Gemini API belum tersedia. "
                 "Silakan hubungi admin aplikasi."
             )
         }
@@ -882,15 +881,19 @@ def ask_doctor(request: dict):
 
     try:
         response = requests.post(
-            f"{OPENCLAW_BASE_URL.rstrip('/')}/v1/chat/completions",
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
             headers={
-                "Authorization": f"Bearer {OPENCLAW_API_KEY}",
                 "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY,
             },
             json={
-                "model": OPENCLAW_MODEL,
-                "messages": messages,
-                "temperature": 0.3,
+                "systemInstruction": {
+                    "parts": [{"text": system_prompt}]
+                },
+                "contents": contents,
+                "generationConfig": {
+                    "temperature": 0.3
+                },
             },
             timeout=30,
         )
@@ -899,12 +902,13 @@ def ask_doctor(request: dict):
             return {
                 "reply": (
                     "Maaf, layanan Tanya Susan sedang tidak bisa diakses. "
-                    f"Kode error: {response.status_code}"
+                    f"Kode error Gemini: {response.status_code}. "
+                    f"Detail: {response.text[:300]}"
                 )
             }
 
         data = response.json()
-        reply = data["choices"][0]["message"]["content"]
+        reply = data["candidates"][0]["content"]["parts"][0]["text"]
 
         return {"reply": reply}
 
