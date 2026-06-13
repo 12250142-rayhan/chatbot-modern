@@ -846,75 +846,75 @@ def ask_doctor(request: dict):
         }
 
     system_prompt = (
-        "Kamu adalah Susan, seorang asisten dokter AI perempuan untuk R Hospital yang memiliki empati kepada manusia. "
+        "Kamu adalah Susan, seorang asisten kesehatan AI perempuan untuk R Hospital yang memiliki empati kepada manusia. "
         "Jawab dalam bahasa Indonesia yang ramah, jelas, singkat, dan mudah dipahami. "
         "Tugasmu menjawab pertanyaan kesehatan umum, edukasi gejala, menjaga pola makan dan tips hidup sehat, "
         "perawatan awal yang aman, penjelasan obat umum, dan kapan pasien perlu periksa. "
         "Jangan memberikan diagnosis pasti. "
         "Jangan membuat resep obat keras atau antibiotik. "
-        "Jawab maksimal 5 poin singkat."
+        "Jawab maksimal 5 poin singkat. "
+        "Untuk kondisi keracunan, jangan menyarankan obat resep. Sarankan bilas mulut, minum air sedikit-sedikit bila sadar, "
+        "jangan paksa muntah, dan segera ke IGD bila tertelan bahan kimia, sesak, muntah terus, nyeri hebat, atau penurunan kesadaran."
     )
 
-    gemini_contents = [
-        {
-            "role": "user",
-            "parts": [
+    gemini_error = "Gemini dilewati"
+
+    # 1. Coba Gemini dulu hanya kalau API key ada
+    if GEMINI_API_KEY:
+        gemini_contents = [
+            {
+                "role": "user",
+                "parts": [{"text": system_prompt}],
+            }
+        ]
+
+        for msg in history[-6:]:
+            role = msg.get("role")
+            text = msg.get("text", "")
+
+            if not text:
+                continue
+
+            if text.strip() == user_message.strip():
+                continue
+
+            gemini_role = "user" if role == "user" else "model"
+            gemini_contents.append(
                 {
-                    "text": system_prompt
+                    "role": gemini_role,
+                    "parts": [{"text": text}],
                 }
-            ],
-        }
-    ]
+            )
 
-    for msg in history[-6:]:
-        role = msg.get("role")
-        text = msg.get("text", "")
-
-        if not text:
-            continue
-
-        if text.strip() == user_message.strip():
-            continue
-
-        gemini_role = "user" if role == "user" else "model"
         gemini_contents.append(
             {
-                "role": gemini_role,
-                "parts": [{"text": text}],
+                "role": "user",
+                "parts": [{"text": user_message}],
             }
         )
 
-    gemini_contents.append(
-        {
-            "role": "user",
-            "parts": [{"text": user_message}],
-        }
-    )
-
-    # 1. Coba Gemini dulu
-    if GEMINI_API_KEY:
         try:
-gemini_response = requests.post(
-    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
-    headers={
-        "x-goog-api-key": GEMINI_API_KEY,
-        "Content-Type": "application/json",
-    },
-    json={
-        "contents": gemini_contents,
-        "generationConfig": {
-            "temperature": 0.3,
-            "maxOutputTokens": 500,
-        },
-    },
-    timeout=10,
-)
+            gemini_response = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
+                headers={
+                    "x-goog-api-key": GEMINI_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "contents": gemini_contents,
+                    "generationConfig": {
+                        "temperature": 0.3,
+                        "maxOutputTokens": 500,
+                    },
+                },
+                timeout=10,
+            )
+
             if gemini_response.status_code == 200:
                 data = gemini_response.json()
                 reply = data["candidates"][0]["content"]["parts"][0]["text"]
                 return {"reply": reply}
 
-            # Kalau Gemini error selain 429, tetap lanjut fallback ke Groq
             gemini_error = f"Gemini error {gemini_response.status_code}: {gemini_response.text[:200]}"
 
         except Exception as error:
@@ -922,7 +922,7 @@ gemini_response = requests.post(
     else:
         gemini_error = "Gemini API key kosong"
 
-    # 2. Fallback ke Groq kalau Gemini gagal / 429
+    # 2. Fallback / primary ke Groq
     if GROQ_API_KEY:
         try:
             groq_messages = [
@@ -976,9 +976,10 @@ gemini_response = requests.post(
             data = groq_response.json()
             reply = data["choices"][0]["message"]["content"]
 
-         return {
-            "reply": reply
-        }
+            return {
+                "reply": reply
+            }
+
         except Exception as error:
             return {
                 "reply": (
