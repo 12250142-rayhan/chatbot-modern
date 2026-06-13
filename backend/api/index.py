@@ -884,25 +884,31 @@ def ask_doctor(request: dict):
             }
         )
 
+    gemini_contents.append(
+        {
+            "role": "user",
+            "parts": [{"text": user_message}],
+        }
+    )
+
     # 1. Coba Gemini dulu
     if GEMINI_API_KEY:
         try:
-            gemini_response = requests.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
-                headers={
-                    "x-goog-api-key": GEMINI_API_KEY,
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "contents": gemini_contents,
-                    "generationConfig": {
-                        "temperature": 0.3,
-                        "maxOutputTokens": 500,
-                    },
-                },
-                timeout=30,
-            )
-
+gemini_response = requests.post(
+    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
+    headers={
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json",
+    },
+    json={
+        "contents": gemini_contents,
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 500,
+        },
+    },
+    timeout=10,
+)
             if gemini_response.status_code == 200:
                 data = gemini_response.json()
                 reply = data["candidates"][0]["content"]["parts"][0]["text"]
@@ -955,7 +961,7 @@ def ask_doctor(request: dict):
                     "temperature": 0.3,
                     "max_tokens": 500,
                 },
-                timeout=30,
+                timeout=20,
             )
 
             if groq_response.status_code != 200:
