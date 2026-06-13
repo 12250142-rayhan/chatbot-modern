@@ -351,22 +351,29 @@ def format_screening_reply(
         f"Kemungkinan tertinggi: {top['name']}",
         f"Kategori: {top['category']}",
         f"Tingkat perhatian: {top['level']}",
-        f"Skor kecocokan: {top['score']} ({top['match_percent']}%)",
         "",
         f"Penjelasan: {top['explanation']}",
-        "",
-        f"Saran awal: {top['advice']}",
-    ]
+            ]
 
     if len(results) > 1:
         lines.extend(["", "Kemungkinan lain:"])
 
         for item in results[1:]:
             lines.append(
-                f"- {item['name']} | skor {item['score']} | level {item['level']}"
+                lines.append(
+    f"- {item['name']} | level {item['level']}"
+)
             )
 
-    if duration_days is not None and duration_days >= top.get("doctor_recommended_after_days", 2):
+    needs_doctor = False
+
+    if duration_days is not None and duration_days >= 2:
+        needs_doctor = True
+
+    if top.get("level") in ["sedang-tinggi", "tinggi", "darurat"]:
+        needs_doctor = True
+
+    if needs_doctor:
         lines.extend([
             "",
             "Berdasarkan durasi dan gejala, pasien disarankan konsultasi ke dokter Poli Umum.",
