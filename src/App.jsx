@@ -41,12 +41,15 @@ function HospitalLogo({ small = false }) {
 
 function SusanAvatar({ small = false }) {
   const size = small ? "w-10 h-10" : "w-14 h-14";
+  const textSize = small ? "text-lg" : "text-2xl";
 
   return (
     <div
-      className={`${size} rounded-2xl bg-gradient-to-br from-fuchsia-400 via-emerald-300 to-cyan-300 flex items-center justify-center shadow-lg shadow-emerald-500/20`}
+      className={`${size} rounded-2xl bg-gradient-to-br from-emerald-300 via-cyan-300 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-white/30`}
     >
-      <span className={small ? "text-xl" : "text-2xl"}>👩‍⚕️</span>
+      <div className="w-[72%] h-[72%] rounded-xl bg-slate-950/80 flex items-center justify-center">
+        <span className={`${textSize} font-black text-emerald-300`}>S</span>
+      </div>
     </div>
   );
 }
@@ -55,10 +58,16 @@ export default function ModernChatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("screening");
+  const cleanBotText = (text = "") => {
+  return text
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .trim();
+};
 
   const getWelcomeMessage = (selectedMode = mode) => {
     if (selectedMode === "susan") {
-      return "Halo! Saya Susan, asisten kesehatan AI R Hospital 👩‍⚕️\n\nSilakan tanyakan seputar kesehatan umum, pola makan, gaya hidup sehat, gejala ringan, atau perawatan awal yang aman.";
+      return "Halo! Saya Susan, asisten kesehatan AI R Hospital.\n\nSilakan tanyakan seputar kesehatan umum, pola makan, gaya hidup sehat, gejala ringan, atau perawatan awal yang aman.";
     }
 
     return "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.";
@@ -133,7 +142,7 @@ export default function ModernChatbot() {
         ...prev,
         {
           role: "bot",
-          text: data.reply || "Maaf, saya belum bisa menjawab.",
+          text: cleanBotText(data.reply || "Maaf, saya belum bisa menjawab."),
         },
       ]);
     } catch (error) {
@@ -304,7 +313,7 @@ export default function ModernChatbot() {
               <div className="rounded-3xl bg-gradient-to-r from-fuchsia-400/10 via-emerald-400/10 to-cyan-400/10 border border-white/10 p-4 flex items-center gap-4">
                 <SusanAvatar small />
                 <div>
-                  <h2 className="font-bold">Halo, saya Susan 👩‍⚕️</h2>
+                  <h2 className="font-bold">Halo, saya Susan</h2>
                   <p className="text-sm text-slate-300 mt-1">
                     Tanyakan seputar pola makan, gaya hidup sehat, keluhan
                     ringan, atau edukasi kesehatan umum.
