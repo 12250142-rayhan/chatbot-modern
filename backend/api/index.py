@@ -1,10 +1,14 @@
 import os
+import sys
 import requests
 from datetime import datetime, timezone, timedelta
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
 from screening_engine import screening_reply
 
 
