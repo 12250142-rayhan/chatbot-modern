@@ -23,6 +23,8 @@ app.add_middleware(
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
 DOCTOR_SCHEDULE = {
     0: {  # Senin
@@ -99,9 +101,10 @@ def test():
 def version():
     return {
         "app": "R Hospital Backend",
-        "version": "gemini-susan-v1",
-        "ai_provider": "gemini",
-        "model": GEMINI_MODEL,
+        "version": "susan-gemini-groq-fallback-v1",
+        "ai_provider": "gemini-primary-groq-fallback",
+        "gemini_model": GEMINI_MODEL,
+        "groq_model": GROQ_MODEL,
         "duration_fix": True
     }
 
@@ -842,14 +845,6 @@ def ask_doctor(request: dict):
             "reply": "Silakan tuliskan pertanyaan kesehatan yang ingin Anda tanyakan kepada Susan."
         }
 
-    if not GEMINI_API_KEY:
-        return {
-            "reply": (
-                "Fitur Tanya Susan belum aktif karena konfigurasi Gemini API belum tersedia. "
-                "Silakan hubungi admin aplikasi."
-            )
-        }
-
     system_prompt = (
         "Kamu adalah Susan, seorang asisten dokter AI perempuan untuk R Hospital yang memiliki empati kepada manusia. "
         "Jawab dalam bahasa Indonesia yang ramah, jelas, singkat, dan mudah dipahami. "
@@ -857,73 +852,143 @@ def ask_doctor(request: dict):
         "perawatan awal yang aman, penjelasan obat umum, dan kapan pasien perlu periksa. "
         "Jangan memberikan diagnosis pasti. "
         "Jangan membuat resep obat keras atau antibiotik. "
+        "Jawab maksimal 5 poin singkat."
     )
 
-    contents = []
+    gemini_contents = [
+        {
+            "role": "user",
+            "parts": [
+                {
+                    "text": system_prompt
+                }
+            ],
+        }
+    ]
 
-    for msg in history[-8:]:
+    for msg in history[-6:]:
         role = msg.get("role")
         text = msg.get("text", "")
 
         if not text:
             continue
 
-        if role == "user":
-            contents.append({
-                "role": "user",
-                "parts": [{"text": text}]
-            })
-        elif role == "bot":
-            contents.append({
-                "role": "model",
-                "parts": [{"text": text}]
-            })
+        if text.strip() == user_message.strip():
+            continue
 
-    contents.append({
-        "role": "user",
-        "parts": [{"text": user_message}]
-    })
-
-    try:
-        response = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
-            headers={
-                "Content-Type": "application/json",
-                "x-goog-api-key": GEMINI_API_KEY,
-            },
-            json={
-                "systemInstruction": {
-                    "parts": [{"text": system_prompt}]
-                },
-                "contents": contents,
-                "generationConfig": {
-                    "temperature": 0.3
-                },
-            },
-            timeout=30,
+        gemini_role = "user" if role == "user" else "model"
+        gemini_contents.append(
+            {
+                "role": gemini_role,
+                "parts": [{"text": text}],
+            }
         )
 
-        if response.status_code != 200:
+    # 1. Coba Gemini dulu
+    if GEMINI_API_KEY:
+        try:
+            gemini_response = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
+                headers={
+                    "x-goog-api-key": GEMINI_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "contents": gemini_contents,
+                    "generationConfig": {
+                        "temperature": 0.3,
+                        "maxOutputTokens": 500,
+                    },
+                },
+                timeout=30,
+            )
+
+            if gemini_response.status_code == 200:
+                data = gemini_response.json()
+                reply = data["candidates"][0]["content"]["parts"][0]["text"]
+                return {"reply": reply}
+
+            # Kalau Gemini error selain 429, tetap lanjut fallback ke Groq
+            gemini_error = f"Gemini error {gemini_response.status_code}: {gemini_response.text[:200]}"
+
+        except Exception as error:
+            gemini_error = f"Gemini exception: {str(error)}"
+    else:
+        gemini_error = "Gemini API key kosong"
+
+    # 2. Fallback ke Groq kalau Gemini gagal / 429
+    if GROQ_API_KEY:
+        try:
+            groq_messages = [
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                }
+            ]
+
+            for msg in history[-6:]:
+                role = msg.get("role")
+                text = msg.get("text", "")
+
+                if not text:
+                    continue
+
+                if text.strip() == user_message.strip():
+                    continue
+
+                if role == "user":
+                    groq_messages.append({"role": "user", "content": text})
+                elif role == "bot":
+                    groq_messages.append({"role": "assistant", "content": text})
+
+            groq_messages.append({"role": "user", "content": user_message})
+
+            groq_response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": GROQ_MODEL,
+                    "messages": groq_messages,
+                    "temperature": 0.3,
+                    "max_tokens": 500,
+                },
+                timeout=30,
+            )
+
+            if groq_response.status_code != 200:
+                return {
+                    "reply": (
+                        "Maaf, layanan Tanya Susan sedang tidak bisa diakses. "
+                        f"Gemini: {gemini_error}. "
+                        f"Groq error {groq_response.status_code}: {groq_response.text[:200]}"
+                    )
+                }
+
+            data = groq_response.json()
+            reply = data["choices"][0]["message"]["content"]
+
+            return {
+                "reply": reply + "\n\n_(Dijawab via fallback Groq karena Gemini sedang limit.)_"
+            }
+
+        except Exception as error:
             return {
                 "reply": (
-                    "Maaf, layanan Tanya Susan sedang tidak bisa diakses. "
-                    f"Kode error Gemini: {response.status_code}. "
-                    f"Detail: {response.text[:300]}"
+                    "Maaf, layanan Tanya Susan sedang gangguan. "
+                    f"Gemini: {gemini_error}. "
+                    f"Groq exception: {str(error)}"
                 )
             }
 
-        data = response.json()
-        reply = data["candidates"][0]["content"]["parts"][0]["text"]
-
-        return {"reply": reply}
-
-    except Exception as error:
-        return {
-            "reply": (
-                "Maaf, terjadi gangguan saat menghubungi layanan Tanya Susan. "
-                f"Detail: {str(error)}"
-            )
-        }
+    return {
+        "reply": (
+            "Maaf, layanan Tanya Susan sedang tidak bisa diakses. "
+            f"Detail: {gemini_error}. Groq API key belum diset."
+        )
+    }
 
 @app.post("/chat")
 def chat(request: dict):
