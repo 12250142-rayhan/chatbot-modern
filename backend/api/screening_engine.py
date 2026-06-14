@@ -163,9 +163,6 @@ def detect_positive_other_info(text):
 
     positive_patterns = [
         r"\bada\b",
-        r"\biya\b",
-        r"\bya\b",
-        r"\byes\b",
         r"\bada gejala lain\b",
         r"\bada keluhan lain\b",
     ]
@@ -395,9 +392,80 @@ def format_screening_reply(
         "",
         "Catatan: ini bukan diagnosis pasti. Diagnosis tetap memerlukan pemeriksaan langsung oleh tenaga medis.",
         "",
-        "Apakah Anda ingin melanjutkan ke pemeriksaan langsung oleh tenaga medis?",
+        "Apakah Anda ingin melanjutkan layanan?",
         "",
-        "Balas dengan: ya atau tidak",
+        "Pilih salah satu:",
+        "1. Konsul Online",
+        "2. Rawat Jalan",
+        "",
+        "Balas dengan: konsul online atau rawat jalan",
+    ])
+
+    lines = [str(line) for line in lines if line is not None]
+
+    return "\n".join(lines)
+    if emergency_reasons:
+        return (
+            "Tanda bahaya terdeteksi.\n\n"
+            f"Alasan: {', '.join(emergency_reasons)}.\n\n"
+            "Kondisi ini termasuk urgent. Sebaiknya segera ke IGD atau fasilitas kesehatan terdekat.\n\n"
+            "Catatan: chatbot ini hanya membantu skrining awal dan bukan pengganti diagnosis dokter."
+        )
+
+    if not results:
+        return (
+            "Saya menangkap gejala: " + ", ".join(symptoms) + ".\n\n"
+            "Namun gejala belum cukup spesifik untuk dicocokkan ke dataset penyakit. "
+            "Silakan lengkapi keluhan lain seperti durasi, suhu, dan gejala penyerta."
+        )
+
+    top = results[0]
+
+    lines = [
+        "Hasil skrining awal R Hospital:",
+        "",
+        f"Gejala terdeteksi: {', '.join(symptoms)}.",
+        f"Umur: {age} tahun." if age is not None else "Umur: belum diisi.",
+        f"Durasi: sekitar {duration_days} hari." if duration_days is not None else "Durasi: belum diisi.",
+        f"Suhu: {temperature}°C." if temperature is not None else "Suhu: belum diisi.",
+        "",
+        f"Kemungkinan tertinggi: {top['name']}",
+        f"Kategori: {top['category']}",
+        f"Tingkat perhatian: {top['level']}",
+        "",
+        f"Penjelasan: {top['explanation']}",
+    ]
+
+    if top.get("advice"):
+        lines.extend([
+            "",
+            f"Saran awal: {top['advice']}",
+        ])
+
+    if len(results) > 1:
+        lines.extend(["", "Kemungkinan lain:"])
+
+        for item in results[1:]:
+            lines.append(f"- {item['name']}")
+
+    if duration_days is not None and duration_days <= 1:
+        lines.extend([
+            "",
+            "Perawatan awal:",
+            get_basic_care_advice(symptoms),
+        ])
+
+    lines.extend([
+        "",
+        "Catatan: ini bukan diagnosis pasti. Diagnosis tetap memerlukan pemeriksaan langsung oleh tenaga medis.",
+        "",
+        "Apakah Anda ingin melanjutkan layanan?",
+        "",
+        "Pilih salah satu:",
+        "1. Konsul Online",
+        "2. Rawat Jalan",
+        "",
+        "Balas dengan: konsul online atau rawat jalan",
     ])
 
     lines = [str(line) for line in lines if line is not None]
