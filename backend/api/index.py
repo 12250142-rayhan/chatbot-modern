@@ -130,7 +130,7 @@ def get_bpjs_queue_number():
 def waiting_for_registration_choice(history):
     if not history:
         return False
-        
+
     for msg in reversed(history):
         if msg.get("role") != "bot":
             continue
@@ -159,11 +159,11 @@ def handle_registration_choice(user_message):
 
         return (
             "Pendaftaran BPJS berhasil dibuat.\n\n"
-            f"Nomor antrian BPJS Anda: BPJS-{queue_number:03d}\n"
+            f"Nomor antrian BPJS Anda: {queue_number:03d}\n"
             f"Tanggal: {get_today_wib()}\n"
             "Poli tujuan: Poli Umum\n\n"
             "Silakan datang ke loket BPJS untuk verifikasi berkas sebelum pemeriksaan.\n"
-            "Catatan: nomor antrian berlaku untuk hari ini."
+            "Catatan: nomor antrian berlaku untuk hari ini. Pemanggilan pasien akan dimulai jam 09:00 WIB Jangan sampai terlambat"
         )
 
     if "umum" in text:
