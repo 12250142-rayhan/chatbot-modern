@@ -158,6 +158,23 @@ def detect_negative_info(text):
 
     return any(re.search(pattern, text) for pattern in negative_patterns)
 
+def detect_positive_other_info(text):
+    text = (text or "").lower().strip()
+
+    positive_patterns = [
+        r"\bada\b",
+        r"\biya\b",
+        r"\bya\b",
+        r"\byes\b",
+        r"\bada gejala lain\b",
+        r"\bada keluhan lain\b",
+    ]
+
+    if detect_negative_info(text):
+        return False
+
+    return any(re.search(pattern, text) for pattern in positive_patterns)
+
 
 def emergency_check(text, symptoms, temperature, dataset=None):
     dataset = dataset or load_dataset()
@@ -405,6 +422,7 @@ def screening_reply(message, history=None, on_duty_doctor=None):
     text = merge_user_text(history or [], message)
 
     symptoms = detect_symptoms(text, dataset)
+    current_symptoms = detect_symptoms(current_text, dataset)
 
     age = detect_age(text)
     if age is None:
@@ -424,6 +442,13 @@ def screening_reply(message, history=None, on_duty_doctor=None):
             "sakit tenggorokan, mual, muntah, diare, nyeri perut, ruam, gatal, "
             "nyeri kencing, sakit gigi, mata merah, telinga sakit, sesak, atau nyeri dada."
         )
+
+    if detect_positive_other_info(current_text) and not current_symptoms:
+        return (
+            "Baik, gejala tambahannya apa?\n\n"
+            "Contohnya: demam, pilek, sakit tenggorokan, sesak napas, nyeri dada, "
+            "mual, muntah, diare, nyeri perut, lemas, atau sakit kepala."
+         )
 
     emergency_reasons = emergency_check(text, symptoms, temperature, dataset)
 
