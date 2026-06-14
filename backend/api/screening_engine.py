@@ -359,11 +359,7 @@ def format_screening_reply(
         lines.extend(["", "Kemungkinan lain:"])
 
         for item in results[1:]:
-            lines.append(
-                lines.append(
-    f"- {item['name']} | level {item['level']}"
-)
-            )
+            lines.append(f"- {item['name']}")
 
     needs_doctor = False
 
@@ -396,6 +392,8 @@ def format_screening_reply(
         "",
         "Catatan: ini bukan diagnosis pasti. Diagnosis tetap memerlukan pemeriksaan langsung oleh tenaga medis.",
     ])
+
+    lines = [str(line) for line in lines if line is not None]
 
     return "\n".join(lines)
 

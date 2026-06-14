@@ -130,21 +130,19 @@ def get_bpjs_queue_number():
 def waiting_for_registration_choice(history):
     if not history:
         return False
-
-    for msg in reversed(history[-8:]):
+        
+    for msg in reversed(history):
         if msg.get("role") != "bot":
             continue
 
         text = msg.get("text", "").lower()
 
-        if "balas dengan: umum atau bpjs" in text:
-            return True
-
-        if "silakan pilih jalur pendaftaran" in text:
-            return True
+        return (
+            "balas dengan: umum atau bpjs" in text
+            or "silakan pilih jalur pendaftaran" in text
+        )
 
     return False
-
 
 def handle_registration_choice(user_message):
     text = user_message.lower().strip()
