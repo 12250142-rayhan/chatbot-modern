@@ -98,7 +98,7 @@
     },
     {
       "code": "P002",
-      "name": "Common Cold / Batuk Pilek",
+      "name": "Batuk Pilek",
       "category": "Pernapasan",
       "main_symptoms": ["pilek", "hidung tersumbat", "bersin", "batuk"],
       "additional_symptoms": ["sakit tenggorokan", "sakit kepala", "lemas"],
