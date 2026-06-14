@@ -370,7 +370,13 @@ def format_screening_reply(
         f"Tingkat perhatian: {top['level']}",
         "",
         f"Penjelasan: {top['explanation']}",
-            ]
+    ]
+
+    if top.get("advice"):
+        lines.extend([
+            "",
+            f"Saran awal: {top['advice']}",
+        ])
 
     if len(results) > 1:
         lines.extend(["", "Kemungkinan lain:"])
@@ -378,27 +384,7 @@ def format_screening_reply(
         for item in results[1:]:
             lines.append(f"- {item['name']}")
 
-    needs_doctor = False
-
-    if duration_days is not None and duration_days >= 2:
-        needs_doctor = True
-
-    if top.get("level") in ["sedang-tinggi", "tinggi", "darurat"]:
-        needs_doctor = True
-
-    if needs_doctor:
-        lines.extend([
-            "",
-            "Berdasarkan durasi dan gejala, pasien disarankan konsultasi ke dokter Poli Umum.",
-            "",
-            "Silakan pilih jalur pendaftaran:",
-            "1. Umum - langsung mendapatkan dokter dan jadwal praktik.",
-            "2. BPJS - mendapatkan nomor antrian harian 1 sampai 150.",
-            "",
-            "Balas dengan: umum atau bpjs",
-        ])
-
-    elif duration_days is not None and duration_days <= 1:
+    if duration_days is not None and duration_days <= 1:
         lines.extend([
             "",
             "Perawatan awal:",
@@ -408,12 +394,15 @@ def format_screening_reply(
     lines.extend([
         "",
         "Catatan: ini bukan diagnosis pasti. Diagnosis tetap memerlukan pemeriksaan langsung oleh tenaga medis.",
+        "",
+        "Apakah Anda ingin melanjutkan ke pemeriksaan langsung oleh tenaga medis?",
+        "",
+        "Balas dengan: ya atau tidak",
     ])
 
     lines = [str(line) for line in lines if line is not None]
 
     return "\n".join(lines)
-
 
 def screening_reply(message, history=None, on_duty_doctor=None):
     dataset = load_dataset()

@@ -215,17 +215,68 @@ def version():
         "duration_fix": True,
     }
 
+def waiting_for_exam_choice(history):
+    if not history:
+        return False
+
+    for msg in reversed(history):
+        if msg.get("role") != "bot":
+            continue
+
+        text = msg.get("text", "").lower()
+
+        return (
+            "apakah anda ingin melanjutkan ke pemeriksaan langsung oleh tenaga medis" in text
+            or "balas dengan: ya atau tidak" in text
+        )
+
+    return False
+
+
+def registration_menu_reply():
+    return (
+        "Baik, silakan pilih jalur pendaftaran:\n\n"
+        "1. Umum - langsung mendapatkan dokter dan jadwal praktik.\n"
+        "2. BPJS - mendapatkan nomor antrian harian 1 sampai 150.\n\n"
+        "Balas dengan: umum atau bpjs"
+    )
+
+
+def handle_exam_choice(user_message):
+    text = user_message.lower().strip()
+
+    yes_words = ["ya", "iya", "y","Y", "yes", "lanjut", "mau", "boleh","Gas","gas","yoo"]
+    no_words = ["tidak", "ga", "g", "G", "gak", "nggak", "enggak", "no", "tidak mau"]
+
+    if text in yes_words or "lanjut" in text or "mau" in text:
+        return registration_menu_reply()
+
+    if text in no_words or "tidak" in text or "gak" in text or "nggak" in text:
+        return (
+            "Terima kasih telah berkonsultasi dengan R Hospital.\n\n"
+            "Semoga cepat sembuh ya. Tetap istirahat cukup, minum air yang cukup, "
+            "dan segera periksa ke tenaga medis jika gejala memburuk."
+        )
+
+    return (
+        "Silakan pilih terlebih dahulu.\n\n"
+        "Balas dengan:\n"
+        "- ya\n"
+        "- tidak"
+    )
 
 @app.post("/chat")
 def chat(request: dict):
     user_message = request.get("message", "")
     history = request.get("history", [])
 
+    if waiting_for_exam_choice(history):
+        reply = handle_exam_choice(user_message)
+        return {"reply": reply}
+
     if waiting_for_registration_choice(history):
         reply = handle_registration_choice(user_message)
-        return {
-            "reply": reply
-        }
+        return {"reply": reply}
 
     reply = screening_reply(
         user_message,
@@ -233,10 +284,7 @@ def chat(request: dict):
         on_duty_doctor=get_on_duty_doctor()
     )
 
-    return {
-        "reply": reply
-    }
-
+    return {"reply": reply}
 
 @app.post("/ask-doctor")
 def ask_doctor(request: dict):
