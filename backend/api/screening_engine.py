@@ -503,7 +503,7 @@ def screening_reply(message, history=None, on_duty_doctor=None):
     if detect_positive_other_info(current_text) and not current_symptoms:
         return (
             "Baik, gejala tambahannya apa?\n\n"
-            "Contohnya: pilek, sakit tenggorokan, sesak napas, nyeri dada, "
+            "Contohnya: demam, pilek, sakit tenggorokan, sesak napas, nyeri dada, "
             "mual, muntah, diare, nyeri perut, lemas, atau sakit kepala."
          )
 
