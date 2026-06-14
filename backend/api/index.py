@@ -210,7 +210,7 @@ def waiting_for_registration_choice(history):
 def handle_service_choice(user_message):
     text = user_message.lower().strip()
 
-    if "online" in text or "konsul" in text:
+    if text in ["1", "konsul online", "online", "konsul"] or "online" in text or "konsul" in text:
         doctor = get_on_duty_doctor()
 
         return (
@@ -225,7 +225,7 @@ def handle_service_choice(user_message):
             "Silakan hubungi nomor tersebut untuk melanjutkan konsultasi online."
         )
 
-    if "rawat" in text or "jalan" in text:
+    if text in ["2", "rawat jalan", "rawat", "jalan"] or "rawat" in text or "jalan" in text:
         return (
             "Anda memilih Rawat Jalan.\n\n"
             "Silakan pilih jalur pendaftaran:\n\n"
@@ -234,7 +234,7 @@ def handle_service_choice(user_message):
             "Balas dengan: umum atau bpjs"
         )
 
-    if "tidak" in text or "gak" in text or "ga" in text or "nggak" in text or "g" in text  or "no" in text:
+    if text in ["tidak", "ga", "g", "gak", "nggak", "enggak", "no", "tidak mau"]:
         return (
             "Terima kasih telah berkonsultasi dengan R Hospital.\n\n"
             "Semoga cepat sembuh ya. Tetap istirahat cukup, minum air yang cukup, "
@@ -244,15 +244,15 @@ def handle_service_choice(user_message):
     return (
         "Silakan pilih layanan terlebih dahulu.\n\n"
         "Balas dengan:\n"
-        "- konsul online\n"
-        "- rawat jalan"
+        "- 1 atau konsul online\n"
+        "- 2 atau rawat jalan"
     )
 
 
 def handle_registration_choice(user_message):
     text = user_message.lower().strip()
 
-    if "bpjs" in text:
+    if text in ["2", "bpjs", "b", "dua"] or "bpjs" in text:
         queue_number = get_bpjs_queue_number()
         max_bpjs_queue = get_bpjs_limit()
 
@@ -272,7 +272,7 @@ def handle_registration_choice(user_message):
             "Catatan: nomor antrian berlaku untuk hari ini. Pemanggilan pasien dimulai jam 09:00 WIB."
         )
 
-    if "umum" in text:
+    if text in ["1", "umum", "u", "satu"] or "umum" in text:
         doctor = get_on_duty_doctor()
         room = get_room_for_shift(doctor)
 
@@ -290,8 +290,8 @@ def handle_registration_choice(user_message):
     return (
         "Silakan pilih jalur pendaftaran terlebih dahulu.\n\n"
         "Balas dengan:\n"
-        "- umum\n"
-        "- bpjs"
+        "- 1 atau umum\n"
+        "- 2 atau bpjs"
     )
 
 @app.post("/chat")
