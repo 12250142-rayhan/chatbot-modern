@@ -1,6 +1,9 @@
 import os
 import sys
+import json
 import requests
+import hashlib
+from functools import lru_cache
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,153 +40,103 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 # Default false biar Susan langsung pakai Groq dulu dan tidak pending nunggu Gemini
 USE_GEMINI = os.getenv("USE_GEMINI", "false").lower() == "true"
 
+DOCTOR_DATASET_PATH = os.path.join(BASE_DIR, "data", "doctor.json")
 
-DOCTOR_SCHEDULE = {
-    0: {
-        "00-08": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-        "08-16": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
-        "16-00": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-    },
-    1: {
-        "00-08": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
-        "08-16": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-        "16-00": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
-    },
-    2: {
-        "00-08": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-        "08-16": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
-        "16-00": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-    },
-    3: {
-        "00-08": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
-        "08-16": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-        "16-00": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
-    },
-    4: {
-        "00-08": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-        "08-16": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-        "16-00": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
-    },
-    5: {
-        "00-08": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
-        "08-16": {"name": "Dr. Adif Rizal", "phone": "+6342548092021"},
-        "16-00": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-    },
-    6: {
-        "00-08": {"name": "Dr. Rini Hermi", "phone": "+6342548029777"},
-        "08-16": {"name": "Dr. Rayhan", "phone": "+6398878802928"},
-        "16-00": {"name": "Dr. Hapid Mizan", "phone": "+6344878029529"},
-    },
-}
-
+DEFAULT_ROOMS = ["Tulip", "Edelweiss", "Lavender", "Dandelions"]
 
 BPJS_QUEUE_STATE = {
     "date": None,
     "last_number": 0,
 }
 
-MAX_BPJS_QUEUE = 150
+
+@lru_cache(maxsize=1)
+def load_doctor_dataset():
+    with open(DOCTOR_DATASET_PATH, "r", encoding="utf-8") as file:
+        return json.load(file)
 
 
 def get_today_wib():
     return datetime.now(timezone(timedelta(hours=7))).strftime("%Y-%m-%d")
 
 
-def get_on_duty_doctor():
+def get_shift_info():
     now = datetime.now(timezone(timedelta(hours=7)))
-    weekday = now.weekday()
     hour = now.hour
 
     if 0 <= hour < 8:
-        shift = "00-08"
-        display_shift = "00:00 - 08:00 WIB (12:00 AM - 8:00 AM)"
-    elif 8 <= hour < 16:
-        shift = "08-16"
-        display_shift = "08:00 - 16:00 WIB (8:00 AM - 4:00 PM)"
-    else:
-        shift = "16-00"
-        display_shift = "16:00 - 00:00 WIB (4:00 PM - 12:00 AM)"
+        return {
+            "code": "00-08",
+            "display": "00:00 - 08:00 WIB"
+        }
 
-    doctor = DOCTOR_SCHEDULE[weekday][shift]
+    if 8 <= hour < 16:
+        return {
+            "code": "08-16",
+            "display": "08:00 - 16:00 WIB"
+        }
+
+    return {
+        "code": "16-00",
+        "display": "16:00 - 00:00 WIB"
+    }
+
+
+def get_bpjs_limit():
+    dataset = load_doctor_dataset()
+
+    return (
+        dataset
+        .get("services", {})
+        .get("outpatient", {})
+        .get("bpjs_daily_limit", 150)
+    )
+
+
+def get_on_duty_doctor():
+    dataset = load_doctor_dataset()
+
+    now = datetime.now(timezone(timedelta(hours=7)))
+    weekday = str(now.weekday())
+    shift = get_shift_info()
+
+    doctor = dataset["doctor_schedule"][weekday][shift["code"]]
 
     return {
         "name": doctor["name"],
         "phone": doctor["phone"],
-        "shift": display_shift,
+        "speciality": doctor.get("speciality", "Dokter Umum"),
+        "shift_code": shift["code"],
+        "shift": shift["display"],
     }
+
+
+def get_room_for_shift(doctor):
+    dataset = load_doctor_dataset()
+    rooms = dataset.get("rooms", DEFAULT_ROOMS)
+
+    today = get_today_wib()
+    key = f"{today}-{doctor['name']}-{doctor['shift_code']}"
+
+    digest = hashlib.md5(key.encode("utf-8")).hexdigest()
+    index = int(digest, 16) % len(rooms)
+
+    return rooms[index]
 
 
 def get_bpjs_queue_number():
     today = get_today_wib()
+    max_bpjs_queue = get_bpjs_limit()
 
     if BPJS_QUEUE_STATE["date"] != today:
         BPJS_QUEUE_STATE["date"] = today
         BPJS_QUEUE_STATE["last_number"] = 0
 
-    if BPJS_QUEUE_STATE["last_number"] >= MAX_BPJS_QUEUE:
+    if BPJS_QUEUE_STATE["last_number"] >= max_bpjs_queue:
         return None
 
     BPJS_QUEUE_STATE["last_number"] += 1
     return BPJS_QUEUE_STATE["last_number"]
-
-
-def waiting_for_registration_choice(history):
-    if not history:
-        return False
-
-    for msg in reversed(history):
-        if msg.get("role") != "bot":
-            continue
-
-        text = msg.get("text", "").lower()
-
-        return (
-            "balas dengan: umum atau bpjs" in text
-            or "silakan pilih jalur pendaftaran" in text
-        )
-
-    return False
-
-def handle_registration_choice(user_message):
-    text = user_message.lower().strip()
-
-    if "bpjs" in text:
-        queue_number = get_bpjs_queue_number()
-
-        if queue_number is None:
-            return (
-                "Mohon maaf, kuota antrian BPJS untuk hari ini sudah penuh.\n\n"
-                "Batas antrian BPJS adalah 150 pasien per hari.\n"
-                "Silakan datang kembali besok atau gunakan jalur Umum bila ingin langsung mendapatkan dokter dan jadwal praktik."
-            )
-
-        return (
-            "Pendaftaran BPJS berhasil dibuat.\n\n"
-            f"Nomor antrian BPJS Anda: {queue_number:03d}\n"
-            f"Tanggal: {get_today_wib()}\n"
-            "Poli tujuan: Poli Umum\n\n"
-            "Silakan datang ke loket BPJS untuk verifikasi berkas sebelum pemeriksaan.\n"
-            "Catatan: nomor antrian berlaku untuk hari ini. Pemanggilan pasien akan dimulai jam 09:00 WIB Jangan sampai terlambat"
-        )
-
-    if "umum" in text:
-        doctor = get_on_duty_doctor()
-
-        return (
-            "Anda memilih jalur Umum.\n\n"
-            "Berikut dokter Poli Umum yang sedang bertugas:\n\n"
-            f"{doctor['name']}\n"
-            f"{doctor['phone']}\n"
-            f"Jadwal praktik: {doctor['shift']}\n\n"
-            "Silakan menuju pendaftaran umum untuk proses pemeriksaan."
-        )
-
-    return (
-        "Silakan pilih jalur pendaftaran terlebih dahulu.\n\n"
-        "Balas dengan:\n"
-        "- umum\n"
-        "- bpjs"
-    )
 
 
 @app.get("/")
@@ -207,7 +160,9 @@ def version():
         "version": "dataset-engine-registration-flow-v1",
         "screening_engine": "dataset_rule_based_scoring",
         "registration_flow": "umum_bpjs",
-        "bpjs_queue_limit_per_day": MAX_BPJS_QUEUE,
+        "bpjs_queue_limit_per_day": get_bpjs_limit(),
+        "doctor_dataset": "doctor.json",
+        "service_flow": "online_consultation_or_outpatient",
         "ai_provider": "groq-primary-gemini-optional",
         "use_gemini": USE_GEMINI,
         "gemini_model": GEMINI_MODEL,
@@ -215,7 +170,8 @@ def version():
         "duration_fix": True,
     }
 
-def waiting_for_exam_choice(history):
+
+def waiting_for_service_choice(history):
     if not history:
         return False
 
@@ -226,32 +182,59 @@ def waiting_for_exam_choice(history):
         text = msg.get("text", "").lower()
 
         return (
-            "apakah anda ingin melanjutkan ke pemeriksaan langsung oleh tenaga medis" in text
-            or "balas dengan: ya atau tidak" in text
+            "balas dengan: konsul online atau rawat jalan" in text
+            or ("konsul online" in text and "rawat jalan" in text)
         )
 
     return False
 
 
-def registration_menu_reply():
-    return (
-        "Baik, silakan pilih jalur pendaftaran:\n\n"
-        "1. Umum - langsung mendapatkan dokter dan jadwal praktik.\n"
-        "2. BPJS - mendapatkan nomor antrian harian 1 sampai 150.\n\n"
-        "Balas dengan: umum atau bpjs"
-    )
+def waiting_for_registration_choice(history):
+    if not history:
+        return False
+
+    for msg in reversed(history):
+        if msg.get("role") != "bot":
+            continue
+
+        text = msg.get("text", "").lower()
+
+        return (
+            "balas dengan: umum atau bpjs" in text
+            or "silakan pilih jalur pendaftaran" in text
+        )
+
+    return False
 
 
-def handle_exam_choice(user_message):
+def handle_service_choice(user_message):
     text = user_message.lower().strip()
 
-    yes_words = ["ya", "iya", "y","Y", "yes", "lanjut", "mau", "boleh","Gas","gas","yoo"]
-    no_words = ["tidak", "ga", "g", "G", "gak", "nggak", "enggak", "no", "tidak mau"]
+    if "online" in text or "konsul" in text:
+        doctor = get_on_duty_doctor()
 
-    if text in yes_words or "lanjut" in text or "mau" in text:
-        return registration_menu_reply()
+        return (
+            "Anda memilih Konsul Online.\n\n"
+            "Layanan konsul online hanya tersedia untuk pasien Umum.\n"
+            "BPJS tidak berlaku untuk layanan konsul online.\n\n"
+            "Dokter yang sedang tersedia:\n\n"
+            f"Dokter: {doctor['name']}\n"
+            f"Spesialisasi: {doctor['speciality']}\n"
+            f"Jam tersedia: {doctor['shift']}\n"
+            f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
+            "Silakan hubungi nomor tersebut untuk melanjutkan konsultasi online."
+        )
 
-    if text in no_words or "tidak" in text or "gak" in text or "nggak" in text:
+    if "rawat" in text or "jalan" in text:
+        return (
+            "Anda memilih Rawat Jalan.\n\n"
+            "Silakan pilih jalur pendaftaran:\n\n"
+            "1. Umum - mendapatkan dokter, jadwal praktik, dan ruangan.\n"
+            "2. BPJS - mendapatkan nomor antrian harian.\n\n"
+            "Balas dengan: umum atau bpjs"
+        )
+
+    if "tidak" in text or "gak" in text or "ga" in text or "nggak" in text or "g" in text  or "no" in text:
         return (
             "Terima kasih telah berkonsultasi dengan R Hospital.\n\n"
             "Semoga cepat sembuh ya. Tetap istirahat cukup, minum air yang cukup, "
@@ -259,10 +242,56 @@ def handle_exam_choice(user_message):
         )
 
     return (
-        "Silakan pilih terlebih dahulu.\n\n"
+        "Silakan pilih layanan terlebih dahulu.\n\n"
         "Balas dengan:\n"
-        "- ya\n"
-        "- tidak"
+        "- konsul online\n"
+        "- rawat jalan"
+    )
+
+
+def handle_registration_choice(user_message):
+    text = user_message.lower().strip()
+
+    if "bpjs" in text:
+        queue_number = get_bpjs_queue_number()
+        max_bpjs_queue = get_bpjs_limit()
+
+        if queue_number is None:
+            return (
+                "Mohon maaf, kuota antrian BPJS untuk hari ini sudah penuh.\n\n"
+                f"Batas antrian BPJS adalah {max_bpjs_queue} pasien per hari.\n"
+                "Silakan datang kembali besok atau gunakan jalur Umum bila ingin langsung mendapatkan dokter dan jadwal praktik."
+            )
+
+        return (
+            "Pendaftaran Rawat Jalan BPJS berhasil dibuat.\n\n"
+            f"Nomor antrian BPJS Anda: BPJS-{queue_number:03d}\n"
+            f"Tanggal: {get_today_wib()}\n"
+            "Poli tujuan: Poli Umum\n\n"
+            "Silakan datang ke loket BPJS untuk verifikasi berkas sebelum pemeriksaan.\n"
+            "Catatan: nomor antrian berlaku untuk hari ini. Pemanggilan pasien dimulai jam 09:00 WIB."
+        )
+
+    if "umum" in text:
+        doctor = get_on_duty_doctor()
+        room = get_room_for_shift(doctor)
+
+        return (
+            "Pendaftaran Rawat Jalan Umum berhasil dibuat.\n\n"
+            "Berikut jadwal dokter Poli Umum:\n\n"
+            f"Dokter: {doctor['name']}\n"
+            f"Spesialisasi: {doctor['speciality']}\n"
+            f"Jam tersedia: {doctor['shift']}\n"
+            f"Ruangan: {room}\n"
+            f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
+            "Silakan datang ke bagian pendaftaran umum sebelum menuju ruangan pemeriksaan."
+        )
+
+    return (
+        "Silakan pilih jalur pendaftaran terlebih dahulu.\n\n"
+        "Balas dengan:\n"
+        "- umum\n"
+        "- bpjs"
     )
 
 @app.post("/chat")
@@ -270,8 +299,8 @@ def chat(request: dict):
     user_message = request.get("message", "")
     history = request.get("history", [])
 
-    if waiting_for_exam_choice(history):
-        reply = handle_exam_choice(user_message)
+    if waiting_for_service_choice(history):
+        reply = handle_service_choice(user_message)
         return {"reply": reply}
 
     if waiting_for_registration_choice(history):

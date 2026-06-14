@@ -1,0 +1,142 @@
+{
+  "rooms": [
+    "Tulip",
+    "Edelweiss",
+    "Lavender",
+    "Dandelions"
+  ],
+  "services": {
+    "online_consultation": {
+      "name": "Konsul Online",
+      "payment": "Umum",
+      "bpjs_available": false,
+      "description": "Konsul online hanya tersedia untuk pasien Umum dan tidak menggunakan BPJS."
+    },
+    "outpatient": {
+      "name": "Rawat Jalan",
+      "payment_options": ["Umum", "BPJS"],
+      "bpjs_daily_limit": 150
+    }
+  },
+  "doctor_schedule": {
+    "0": {
+      "00-08": {
+        "name": "Dr. Rayhan",
+        "phone": "+6398878802928",
+        "speciality": "Dokter Umum"
+      },
+      "08-16": {
+        "name": "Dr. Hapid Mizan",
+        "phone": "+6344878029529",
+        "speciality": "Dokter Umum"
+      },
+      "16-00": {
+        "name": "Dr. Rini Hermi",
+        "phone": "+6342548029777",
+        "speciality": "Dokter Umum"
+      }
+    },
+    "1": {
+      "00-08": {
+        "name": "Dr. Adif Rizal",
+        "phone": "+628111111111",
+        "speciality": "Dokter Umum"
+      },
+      "08-16": {
+        "name": "Dr. Bambang Pamungkas",
+        "phone": "+628222222222",
+        "speciality": "Dokter Umum"
+      },
+      "16-00": {
+        "name": "Dr. Bjorka",
+        "phone": "+628333333333",
+        "speciality": "Dokter Umum"
+      }
+    },
+    "2": {
+      "00-08": {
+        "name": "Dr. Boyke",
+        "phone": "+628444444444",
+        "speciality": "Dokter Umum"
+      },
+      "08-16": {
+        "name": "Dr. Ucok",
+        "phone": "+628555555555",
+        "speciality": "Dokter Umum"
+      },
+      "16-00": {
+        "name": "Dr. Agoy",
+        "phone": "+628666666666",
+        "speciality": "Dokter Umum"
+      }
+    },
+    "3": {
+      "00-08": {
+        "name": "Dr. Nabila",
+        "phone": "+628777777777",
+        "speciality": "Dokter Umum"
+      },
+      "08-16": {
+        "name": "Dr. Citra",
+        "phone": "+628888888888",
+        "speciality": "Dokter Umum"
+      },
+      "16-00": {
+        "name": "Dr. Amira",
+        "phone": "+628999999999",
+        "speciality": "Dokter Umum"
+      }
+    },
+    "4": {
+      "00-08": {
+        "name": "Dr. Younglex",
+        "phone": "+628121212121",
+        "speciality": "Dokter Umum"
+      },
+      "08-16": {
+        "name": "Dr. Eminem",
+        "phone": "+628131313131",
+        "speciality": "Dokter Umum"
+      },
+      "16-00": {
+        "name": "Dr. Wiz Khalifa",
+        "phone": "+628141414141",
+        "speciality": "Dokter Umum"
+      }
+    },
+    "5": {
+      "00-08": {
+        "name": "Dr. Alul",
+        "phone": "+628151515151",
+        "speciality": "Dokter Umum"
+      },
+      "08-16": {
+        "name": "Dr. Gibran",
+        "phone": "+628161616161",
+        "speciality": "Dokter Umum"
+      },
+      "16-00": {
+        "name": "Dr. Wowo",
+        "phone": "+628171717171",
+        "speciality": "Dokter Umum"
+      }
+    },
+    "6": {
+      "00-08": {
+        "name": "Dr. Bahlil",
+        "phone": "+628181818181",
+        "speciality": "Dokter Umum"
+      },
+      "08-16": {
+        "name": "Dr. John Chena",
+        "phone": "+628191919191",
+        "speciality": "Dokter Umum"
+      },
+      "16-00": {
+        "name": "Dr. Rey Mysterio",
+        "phone": "+628202020202",
+        "speciality": "Dokter Umum"
+      }
+    }
+  }
+}
