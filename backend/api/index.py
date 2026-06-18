@@ -220,6 +220,12 @@ def handle_initial_service_choice(user_message):
 def is_screening_result(reply):
     return "Hasil skrining awal R Hospital:" in reply
 
+def extract_poli_from_screening(screening_text):
+    for line in screening_text.splitlines():
+        if line.lower().startswith("poli rekomendasi:"):
+            return line.split(":", 1)[1].strip()
+
+    return "Poli Umum"
 
 def get_speciality_by_poli(recommended_poli):
     poli = (recommended_poli or "").lower()
