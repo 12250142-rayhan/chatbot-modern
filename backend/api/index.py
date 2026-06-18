@@ -19,10 +19,12 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://chatbot-modern-eight.vercel.app",
-        "https://chatbot-modern.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "https://chatbot-modern-eight.vercel.app",
+    "https://chatbot-modern.vercel.app",
     ],
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
@@ -481,80 +483,3 @@ def ask_doctor(request: dict):
             f"Detail: {gemini_error}. Groq API key belum diset."
         )
     }
-
-def screening_reply(message, history=None, on_duty_doctor=None):
-    dataset = load_dataset()
-
-    current_text = (message or "").lower().strip()
-    text = merge_user_text(history or [], message)
-
-    symptoms = detect_symptoms(text, dataset)
-    current_symptoms = detect_symptoms(current_text, dataset)
-
-    age = detect_age(text)
-    if age is None:
-        age = detect_age(current_text)
-
-    duration_days = detect_duration_days(text)
-    if duration_days is None:
-        duration_days = detect_duration_days(current_text)
-
-    temperature = detect_temperature(text)
-    if temperature is None:
-        temperature = detect_temperature(current_text)
-
-    # Kalau user bilang ada gejala lain, tapi belum nyebut gejalanya
-    if detect_positive_other_info(current_text) and not current_symptoms:
-        return (
-            "Baik, gejala tambahannya apa?\n\n"
-            "Contohnya: demam, pilek, batuk, sakit tenggorokan, sesak napas, "
-            "nyeri dada, mual, muntah, diare, nyeri perut, sakit gigi, "
-            "nyeri telinga, atau sakit kepala."
-        )
-
-    if not symptoms:
-        return (
-            "Saya belum menangkap gejala yang cukup jelas.\n\n"
-            "Silakan tuliskan keluhan utama Anda, umur, sudah berapa lama gejalanya, "
-            "dan suhu tubuh jika ada demam.\n\n"
-            "Contoh: saya batuk pilek 2 hari umur 19 tahun."
-        )
-
-    emergency_reasons = emergency_check(text, symptoms, temperature, dataset)
-
-    if emergency_reasons:
-        return format_screening_reply(
-            symptoms=symptoms,
-            age=age,
-            duration_days=duration_days,
-            temperature=temperature,
-            emergency_reasons=emergency_reasons,
-            results=[],
-            on_duty_doctor=on_duty_doctor,
-        )
-
-    missing = ask_missing_info(symptoms, age, duration_days, temperature, text)
-
-    if missing:
-        return (
-            "Saya menangkap gejala: " + ", ".join(symptoms) + ".\n\n"
-            "Supaya skrining lebih akurat, mohon lengkapi:\n"
-            + "\n".join([f"- {item}" for item in missing])
-        )
-
-    results = classify_diseases(
-        symptoms=symptoms,
-        duration_days=duration_days,
-        dataset=dataset,
-        top_n=3,
-    )
-
-    return format_screening_reply(
-        symptoms=symptoms,
-        age=age,
-        duration_days=duration_days,
-        temperature=temperature,
-        emergency_reasons=[],
-        results=results,
-        on_duty_doctor=on_duty_doctor,
-    )
