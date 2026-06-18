@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import requests
-import hashlib
 from functools import lru_cache
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI
@@ -37,12 +36,10 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
-# Default false biar Susan langsung pakai Groq dulu dan tidak pending nunggu Gemini
+# Default false Susan pakai Groq dulu dan tidak pending nunggu Gemini
 USE_GEMINI = os.getenv("USE_GEMINI", "false").lower() == "true"
 
 DOCTOR_DATASET_PATH = os.path.join(BASE_DIR, "data", "doctor.json")
-
-DEFAULT_ROOMS = ["Tulip", "Edelweiss", "Lavender", "Dandelions"]
 
 BPJS_QUEUE_STATE = {
     "date": None,
@@ -111,19 +108,6 @@ def get_on_duty_doctor():
     }
 
 
-def get_room_for_shift(doctor):
-    dataset = load_doctor_dataset()
-    rooms = dataset.get("rooms", DEFAULT_ROOMS)
-
-    today = get_today_wib()
-    key = f"{today}-{doctor['name']}-{doctor['shift_code']}"
-
-    digest = hashlib.md5(key.encode("utf-8")).hexdigest()
-    index = int(digest, 16) % len(rooms)
-
-    return rooms[index]
-
-
 def get_bpjs_queue_number():
     today = get_today_wib()
     max_bpjs_queue = get_bpjs_limit()
@@ -170,129 +154,6 @@ def version():
         "duration_fix": True,
     }
 
-
-def waiting_for_service_choice(history):
-    if not history:
-        return False
-
-    for msg in reversed(history):
-        if msg.get("role") != "bot":
-            continue
-
-        text = msg.get("text", "").lower()
-
-        return (
-            "balas dengan: konsul online atau rawat jalan" in text
-            or ("konsul online" in text and "rawat jalan" in text)
-        )
-
-    return False
-
-
-def waiting_for_registration_choice(history):
-    if not history:
-        return False
-
-    for msg in reversed(history):
-        if msg.get("role") != "bot":
-            continue
-
-        text = msg.get("text", "").lower()
-
-        return (
-            "balas dengan: umum atau bpjs" in text
-            or "silakan pilih jalur pendaftaran" in text
-        )
-
-    return False
-
-
-def handle_service_choice(user_message):
-    text = user_message.lower().strip()
-
-    if text in ["1", "konsul online", "online", "konsul"] or "online" in text or "konsul" in text:
-        doctor = get_on_duty_doctor()
-
-        return (
-            "Anda memilih Konsul Online.\n\n"
-            "Layanan konsul online hanya tersedia untuk pasien Umum.\n"
-            "BPJS tidak berlaku untuk layanan konsul online.\n\n"
-            "Dokter yang sedang tersedia:\n\n"
-            f"Dokter: {doctor['name']}\n"
-            f"Spesialisasi: {doctor['speciality']}\n"
-            f"Jam tersedia: {doctor['shift']}\n"
-            f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
-            "Silakan hubungi nomor tersebut untuk melanjutkan konsultasi online."
-        )
-
-    if text in ["2", "rawat jalan", "rawat", "jalan"] or "rawat" in text or "jalan" in text:
-        return (
-            "Anda memilih Rawat Jalan.\n\n"
-            "Silakan pilih jalur pendaftaran:\n\n"
-            "1. Umum - mendapatkan dokter, jadwal praktik, dan ruangan.\n"
-            "2. BPJS - mendapatkan nomor antrian harian.\n\n"
-            "Balas dengan: umum atau bpjs"
-        )
-
-    if text in ["tidak", "ga", "g", "gak", "nggak", "enggak", "no", "tidak mau"]:
-        return (
-            "Terima kasih telah berkonsultasi dengan R Hospital.\n\n"
-            "Semoga cepat sembuh ya. Tetap istirahat cukup, minum air yang cukup, "
-            "dan segera periksa ke tenaga medis jika gejala memburuk."
-        )
-
-    return (
-        "Silakan pilih layanan terlebih dahulu.\n\n"
-        "Balas dengan:\n"
-        "- 1 atau konsul online\n"
-        "- 2 atau rawat jalan"
-    )
-
-
-def handle_registration_choice(user_message):
-    text = user_message.lower().strip()
-
-    if text in ["2", "bpjs", "b", "dua"] or "bpjs" in text:
-        queue_number = get_bpjs_queue_number()
-        max_bpjs_queue = get_bpjs_limit()
-
-        if queue_number is None:
-            return (
-                "Mohon maaf, kuota antrian BPJS untuk hari ini sudah penuh.\n\n"
-                f"Batas antrian BPJS adalah {max_bpjs_queue} pasien per hari.\n"
-                "Silakan datang kembali besok atau gunakan jalur Umum bila ingin langsung mendapatkan dokter dan jadwal praktik."
-            )
-
-        return (
-            "Pendaftaran Rawat Jalan BPJS berhasil dibuat.\n\n"
-            f"Nomor antrian BPJS Anda: BPJS-{queue_number:03d}\n"
-            f"Tanggal: {get_today_wib()}\n"
-            "Poli tujuan: Poli Umum\n\n"
-            "Silakan datang ke loket BPJS untuk verifikasi berkas sebelum pemeriksaan.\n"
-            "Catatan: nomor antrian berlaku untuk hari ini. Pemanggilan pasien dimulai jam 09:00 WIB."
-        )
-
-    if text in ["1", "umum", "u", "satu"] or "umum" in text:
-        doctor = get_on_duty_doctor()
-        room = get_room_for_shift(doctor)
-
-        return (
-            "Pendaftaran Rawat Jalan Umum berhasil dibuat.\n\n"
-            "Berikut jadwal dokter Poli Umum:\n\n"
-            f"Dokter: {doctor['name']}\n"
-            f"Spesialisasi: {doctor['speciality']}\n"
-            f"Jam tersedia: {doctor['shift']}\n"
-            f"Ruangan: {room}\n"
-            f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
-            "Silakan datang ke bagian pendaftaran umum sebelum menuju ruangan pemeriksaan."
-        )
-
-    return (
-        "Silakan pilih jalur pendaftaran terlebih dahulu.\n\n"
-        "Balas dengan:\n"
-        "- 1 atau umum\n"
-        "- 2 atau bpjs"
-    )
 
 def get_selected_service(history):
     if not history:
@@ -358,7 +219,17 @@ def is_screening_result(reply):
     return "Hasil skrining awal R Hospital:" in reply
 
 
-def build_service_result(selected_service):
+def extract_poli_from_screening(screening_text):
+    for line in screening_text.splitlines():
+        if line.lower().startswith("poli rekomendasi:"):
+            return line.split(":", 1)[1].strip()
+
+    return "Poli Umum"
+
+
+def build_service_result(selected_service, screening_text=""):
+    recommended_poli = extract_poli_from_screening(screening_text)
+
     if selected_service == "online":
         doctor = get_on_duty_doctor()
 
@@ -366,6 +237,7 @@ def build_service_result(selected_service):
             "Informasi Konsul Online:\n\n"
             "Konsul online hanya tersedia untuk pasien Umum.\n"
             "BPJS tidak berlaku untuk layanan konsul online.\n\n"
+            f"Poli tujuan: {recommended_poli}\n"
             f"Dokter: {doctor['name']}\n"
             f"Spesialisasi: {doctor['speciality']}\n"
             f"Jam tersedia: {doctor['shift']}\n"
@@ -375,17 +247,16 @@ def build_service_result(selected_service):
 
     if selected_service == "umum":
         doctor = get_on_duty_doctor()
-        room = get_room_for_shift(doctor)
 
         return (
             "Pendaftaran Daftar Umum berhasil dibuat.\n\n"
-            "Berikut jadwal dokter Poli Umum:\n\n"
+            "Berikut jadwal dokter:\n\n"
+            f"Poli tujuan: {recommended_poli}\n"
             f"Dokter: {doctor['name']}\n"
             f"Spesialisasi: {doctor['speciality']}\n"
             f"Jam tersedia: {doctor['shift']}\n"
-            f"Ruangan: {room}\n"
             f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
-            "Silakan datang ke bagian pendaftaran umum sebelum menuju ruangan pemeriksaan."
+            "Silakan datang ke bagian pendaftaran umum sebelum menuju poli pemeriksaan."
         )
 
     if selected_service == "bpjs":
@@ -403,12 +274,13 @@ def build_service_result(selected_service):
             "Pendaftaran BPJS berhasil dibuat.\n\n"
             f"Nomor antrian BPJS Anda: BPJS-{queue_number:03d}\n"
             f"Tanggal: {get_today_wib()}\n"
-            "Poli tujuan: Poli Umum\n\n"
+            f"Poli tujuan: {recommended_poli}\n\n"
             "Silakan datang ke loket BPJS untuk verifikasi berkas sebelum pemeriksaan.\n"
             "Catatan: nomor antrian berlaku untuk hari ini. Pemanggilan pasien dimulai jam 09:00 WIB."
         )
 
     return ""
+
 
 @app.post("/chat")
 def chat(request: dict):
@@ -428,7 +300,7 @@ def chat(request: dict):
     )
 
     if is_screening_result(reply):
-        service_result = build_service_result(selected_service)
+        service_result = build_service_result(selected_service, reply)
         reply = reply + "\n\n" + service_result
 
     return {"reply": reply}
@@ -609,3 +481,80 @@ def ask_doctor(request: dict):
             f"Detail: {gemini_error}. Groq API key belum diset."
         )
     }
+
+def screening_reply(message, history=None, on_duty_doctor=None):
+    dataset = load_dataset()
+
+    current_text = (message or "").lower().strip()
+    text = merge_user_text(history or [], message)
+
+    symptoms = detect_symptoms(text, dataset)
+    current_symptoms = detect_symptoms(current_text, dataset)
+
+    age = detect_age(text)
+    if age is None:
+        age = detect_age(current_text)
+
+    duration_days = detect_duration_days(text)
+    if duration_days is None:
+        duration_days = detect_duration_days(current_text)
+
+    temperature = detect_temperature(text)
+    if temperature is None:
+        temperature = detect_temperature(current_text)
+
+    # Kalau user bilang ada gejala lain, tapi belum nyebut gejalanya
+    if detect_positive_other_info(current_text) and not current_symptoms:
+        return (
+            "Baik, gejala tambahannya apa?\n\n"
+            "Contohnya: demam, pilek, batuk, sakit tenggorokan, sesak napas, "
+            "nyeri dada, mual, muntah, diare, nyeri perut, sakit gigi, "
+            "nyeri telinga, atau sakit kepala."
+        )
+
+    if not symptoms:
+        return (
+            "Saya belum menangkap gejala yang cukup jelas.\n\n"
+            "Silakan tuliskan keluhan utama Anda, umur, sudah berapa lama gejalanya, "
+            "dan suhu tubuh jika ada demam.\n\n"
+            "Contoh: saya batuk pilek 2 hari umur 19 tahun."
+        )
+
+    emergency_reasons = emergency_check(text, symptoms, temperature, dataset)
+
+    if emergency_reasons:
+        return format_screening_reply(
+            symptoms=symptoms,
+            age=age,
+            duration_days=duration_days,
+            temperature=temperature,
+            emergency_reasons=emergency_reasons,
+            results=[],
+            on_duty_doctor=on_duty_doctor,
+        )
+
+    missing = ask_missing_info(symptoms, age, duration_days, temperature, text)
+
+    if missing:
+        return (
+            "Saya menangkap gejala: " + ", ".join(symptoms) + ".\n\n"
+            "Supaya skrining lebih akurat, mohon lengkapi:\n"
+            + "\n".join([f"- {item}" for item in missing])
+        )
+
+    results = classify_diseases(
+        symptoms=symptoms,
+        duration_days=duration_days,
+        dataset=dataset,
+        top_n=3,
+    )
+
+    return format_screening_reply(
+        symptoms=symptoms,
+        age=age,
+        duration_days=duration_days,
+        temperature=temperature,
+        emergency_reasons=[],
+        results=results,
+        on_duty_doctor=on_duty_doctor,
+    )

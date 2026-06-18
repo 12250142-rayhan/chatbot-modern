@@ -328,6 +328,43 @@ def get_basic_care_advice(symptoms):
     return "\n".join(advice)
 
 
+def recommend_poli(top, symptoms):
+    name = (top.get("name") or "").lower()
+    category = (top.get("category") or "").lower()
+    symptom_text = " ".join(symptoms).lower()
+
+    dental_keywords = [
+        "gigi",
+        "gusi",
+        "mulut",
+        "sariawan",
+        "rahang",
+    ]
+
+    tht_keywords = [
+        "telinga",
+        "hidung",
+        "tenggorokan",
+        "pilek",
+        "hidung tersumbat",
+        "sinus",
+        "amandel",
+        "ispa",
+        "common cold",
+        "batuk pilek",
+        "flu",
+        "batuk",
+    ]
+
+    if any(keyword in name or keyword in category or keyword in symptom_text for keyword in dental_keywords):
+        return "Poli Gigi"
+
+    if any(keyword in name or keyword in category or keyword in symptom_text for keyword in tht_keywords):
+        return "Poli THT"
+
+    return "Poli Umum"
+
+    
 def format_screening_reply(
     symptoms,
     age,
@@ -353,6 +390,7 @@ def format_screening_reply(
         )
 
     top = results[0]
+    recommended_poli = recommend_poli(top, symptoms)
 
     lines = [
         "Hasil skrining awal R Hospital:",
@@ -365,6 +403,7 @@ def format_screening_reply(
         f"Kemungkinan tertinggi: {top['name']}",
         f"Kategori: {top['category']}",
         f"Tingkat perhatian: {top['level']}",
+        f"Poli rekomendasi: {recommended_poli}",
         "",
         f"Penjelasan: {top['explanation']}",
     ]
@@ -418,19 +457,21 @@ def screening_reply(message, history=None, on_duty_doctor=None):
     if temperature is None:
         temperature = detect_temperature(current_text)
 
-    if not symptoms:
-        return (
-            "Boleh jelaskan keluhan utama Anda? Contohnya batuk, demam, pilek, "
-            "sakit tenggorokan, mual, muntah, diare, nyeri perut, ruam, gatal, "
-            "nyeri kencing, sakit gigi, mata merah, telinga sakit, sesak, atau nyeri dada."
-        )
-
     if detect_positive_other_info(current_text) and not current_symptoms:
         return (
             "Baik, gejala tambahannya apa?\n\n"
-            "Contohnya: demam, pilek, sakit tenggorokan, sesak napas, nyeri dada, "
-            "mual, muntah, diare, nyeri perut, lemas, atau sakit kepala."
-         )
+            "Contohnya: demam, pilek, batuk, sakit tenggorokan, sesak napas, "
+            "nyeri dada, mual, muntah, diare, nyeri perut, sakit gigi, "
+            "nyeri telinga, atau sakit kepala."
+        )
+
+    if not symptoms:
+        return (
+            "Saya belum menangkap gejala yang cukup jelas.\n\n"
+            "Silakan tuliskan keluhan utama Anda, umur, sudah berapa lama gejalanya, "
+            "dan suhu tubuh jika ada demam.\n\n"
+            "Contoh: saya batuk pilek 2 hari umur 19 tahun."
+        )
 
     emergency_reasons = emergency_check(text, symptoms, temperature, dataset)
 
@@ -449,8 +490,9 @@ def screening_reply(message, history=None, on_duty_doctor=None):
 
     if missing:
         return (
-            f"Saya menangkap gejala: {', '.join(symptoms)}.\n\n"
-            f"Boleh lengkapi dulu: {', '.join(missing)}?"
+            "Saya menangkap gejala: " + ", ".join(symptoms) + ".\n\n"
+            "Supaya skrining lebih akurat, mohon lengkapi:\n"
+            + "\n".join([f"- {item}" for item in missing])
         )
 
     results = classify_diseases(
@@ -465,7 +507,7 @@ def screening_reply(message, history=None, on_duty_doctor=None):
         age=age,
         duration_days=duration_days,
         temperature=temperature,
-        emergency_reasons=emergency_reasons,
+        emergency_reasons=[],
         results=results,
         on_duty_doctor=on_duty_doctor,
     )

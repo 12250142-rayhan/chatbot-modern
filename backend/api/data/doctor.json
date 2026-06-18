@@ -1,10 +1,4 @@
 {
-  "rooms": [
-    "Tulip",
-    "Edelweiss",
-    "Lavender",
-    "Dandelions"
-  ],
   "services": {
     "online_consultation": {
       "name": "Konsul Online",
