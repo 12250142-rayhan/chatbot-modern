@@ -143,13 +143,24 @@ export default function ModernChatbot() {
       .trim();
   };
 
-  const getWelcomeMessage = (selectedMode = mode) => {
-    if (selectedMode === "susan") {
-      return "Halo! Saya Susan, asisten kesehatan AI R Hospital.\n\nSilakan tanyakan seputar kesehatan umum, pola makan, gaya hidup sehat, gejala ringan, atau perawatan awal yang aman.";
-    }
+const getWelcomeMessage = () => {
+  return `Halo! Selamat datang di R Hospital 👋
 
-    return "Halo! Selamat datang di R Hospital 👋\n\nSilakan pilih layanan terlebih dahulu: 1. Konsul Online 2. Daftar Umum 3. BPJS Balas dengan angka atau nama layanan.";
-  };
+Silakan pilih layanan terlebih dahulu:
+
+1. Konsul Online
+2. Daftar Umum
+3. BPJS
+
+Balas dengan angka atau nama layanan.`;
+};
+
+const [messages, setMessages] = useState([
+  {
+    role: "bot",
+    text: getWelcomeMessage(),
+  },
+]);
 
   const [messages, setMessages] = useState([
     {
