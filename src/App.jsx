@@ -148,7 +148,7 @@ export default function ModernChatbot() {
       return "Halo! Saya Susan, asisten kesehatan AI R Hospital.\n\nSilakan tanyakan seputar kesehatan umum, pola makan, gaya hidup sehat, gejala ringan, atau perawatan awal yang aman.";
     }
 
-    return "Halo! Selamat datang di R Hospital 👋\n\nSaya bisa membantu skrining awal berdasarkan gejala. Ceritakan keluhan Anda, umur, dan sudah berapa lama gejalanya.";
+    return "Halo! Selamat datang di R Hospital 👋\n\nSilakan pilih layanan terlebih dahulu: 1. Konsul Online 2. Daftar Umum 3. BPJS Balas dengan angka atau nama layanan.";
   };
 
   const [messages, setMessages] = useState([

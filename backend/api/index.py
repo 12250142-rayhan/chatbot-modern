@@ -294,17 +294,131 @@ def handle_registration_choice(user_message):
         "- 2 atau bpjs"
     )
 
+def get_selected_service(history):
+    if not history:
+        return None
+
+    for msg in reversed(history):
+        if msg.get("role") != "bot":
+            continue
+
+        text = msg.get("text", "").lower()
+
+        if "anda memilih konsul online" in text:
+            return "online"
+
+        if "anda memilih daftar umum" in text:
+            return "umum"
+
+        if "anda memilih bpjs" in text:
+            return "bpjs"
+
+    return None
+
+
+def service_menu_reply():
+    return (
+        "Silakan pilih layanan terlebih dahulu:\n\n"
+        "1. Konsul Online\n"
+        "2. Daftar Umum\n"
+        "3. BPJS\n\n"
+        "Balas dengan angka atau nama layanan."
+    )
+
+
+def handle_initial_service_choice(user_message):
+    text = user_message.lower().strip()
+
+    if text in ["1", "konsul", "online", "konsul online"] or "konsul" in text or "online" in text:
+        return (
+            "Anda memilih Konsul Online.\n\n"
+            "Layanan ini hanya tersedia untuk pasien Umum dan tidak menggunakan BPJS.\n\n"
+            "Silakan ceritakan keluhan Anda, umur, sudah berapa lama gejalanya, "
+            "dan suhu tubuh jika ada demam."
+        )
+
+    if text in ["2", "umum", "daftar umum", "rawat jalan umum"] or "umum" in text:
+        return (
+            "Anda memilih Daftar Umum.\n\n"
+            "Silakan ceritakan keluhan Anda, umur, sudah berapa lama gejalanya, "
+            "dan suhu tubuh jika ada demam."
+        )
+
+    if text in ["3", "bpjs", "daftar bpjs"] or "bpjs" in text:
+        return (
+            "Anda memilih BPJS.\n\n"
+            "Silakan ceritakan keluhan Anda, umur, sudah berapa lama gejalanya, "
+            "dan suhu tubuh jika ada demam."
+        )
+
+    return service_menu_reply()
+
+
+def is_screening_result(reply):
+    return "Hasil skrining awal R Hospital:" in reply
+
+
+def build_service_result(selected_service):
+    if selected_service == "online":
+        doctor = get_on_duty_doctor()
+
+        return (
+            "Informasi Konsul Online:\n\n"
+            "Konsul online hanya tersedia untuk pasien Umum.\n"
+            "BPJS tidak berlaku untuk layanan konsul online.\n\n"
+            f"Dokter: {doctor['name']}\n"
+            f"Spesialisasi: {doctor['speciality']}\n"
+            f"Jam tersedia: {doctor['shift']}\n"
+            f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
+            "Silakan hubungi nomor tersebut untuk melanjutkan konsultasi online."
+        )
+
+    if selected_service == "umum":
+        doctor = get_on_duty_doctor()
+        room = get_room_for_shift(doctor)
+
+        return (
+            "Pendaftaran Daftar Umum berhasil dibuat.\n\n"
+            "Berikut jadwal dokter Poli Umum:\n\n"
+            f"Dokter: {doctor['name']}\n"
+            f"Spesialisasi: {doctor['speciality']}\n"
+            f"Jam tersedia: {doctor['shift']}\n"
+            f"Ruangan: {room}\n"
+            f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
+            "Silakan datang ke bagian pendaftaran umum sebelum menuju ruangan pemeriksaan."
+        )
+
+    if selected_service == "bpjs":
+        queue_number = get_bpjs_queue_number()
+        max_bpjs_queue = get_bpjs_limit()
+
+        if queue_number is None:
+            return (
+                "Mohon maaf, kuota antrian BPJS untuk hari ini sudah penuh.\n\n"
+                f"Batas antrian BPJS adalah {max_bpjs_queue} pasien per hari.\n"
+                "Silakan datang kembali besok atau gunakan jalur Umum."
+            )
+
+        return (
+            "Pendaftaran BPJS berhasil dibuat.\n\n"
+            f"Nomor antrian BPJS Anda: BPJS-{queue_number:03d}\n"
+            f"Tanggal: {get_today_wib()}\n"
+            "Poli tujuan: Poli Umum\n\n"
+            "Silakan datang ke loket BPJS untuk verifikasi berkas sebelum pemeriksaan.\n"
+            "Catatan: nomor antrian berlaku untuk hari ini. Pemanggilan pasien dimulai jam 09:00 WIB."
+        )
+
+    return ""
+
 @app.post("/chat")
 def chat(request: dict):
     user_message = request.get("message", "")
     history = request.get("history", [])
 
-    if waiting_for_service_choice(history):
-        reply = handle_service_choice(user_message)
-        return {"reply": reply}
+    selected_service = get_selected_service(history)
 
-    if waiting_for_registration_choice(history):
-        reply = handle_registration_choice(user_message)
+    if selected_service is None:
+        reply = handle_initial_service_choice(user_message)
         return {"reply": reply}
 
     reply = screening_reply(
@@ -312,6 +426,10 @@ def chat(request: dict):
         history,
         on_duty_doctor=get_on_duty_doctor()
     )
+
+    if is_screening_result(reply):
+        service_result = build_service_result(selected_service)
+        reply = reply + "\n\n" + service_result
 
     return {"reply": reply}
 
