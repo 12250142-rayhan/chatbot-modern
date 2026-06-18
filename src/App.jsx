@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 
 const API_URL = "https://r-hospital-api-v3.vercel.app";
 
+const screeningPrompts = [
+  "1. Konsul Online",
+  "2. Daftar Umum",
+  "3. BPJS",
+];
+
 const susanPrompts = [
   "Makanan apa yang bagus untuk menjaga imun?",
   "Bagaimana cara menjaga pola tidur?",
