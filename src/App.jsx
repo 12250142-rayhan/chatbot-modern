@@ -2,13 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 const API_URL = "https://r-hospital-api-v3.vercel.app";
 
-const screeningPrompts = [
-  "Saya demam 1 hari umur 19 tahun",
-  "Saya batuk sudah 2 hari umur 19 tahun",
-  "Saya sakit perut dan mual 1 hari",
-  "Saya sesak napas dan nyeri dada",
-];
-
 const susanPrompts = [
   "Makanan apa yang bagus untuk menjaga imun?",
   "Bagaimana cara menjaga pola tidur?",
@@ -143,7 +136,15 @@ export default function ModernChatbot() {
       .trim();
   };
 
-const getWelcomeMessage = () => {
+const getWelcomeMessage = (selectedMode = "screening") => {
+  if (selectedMode === "susan") {
+    return `Halo! Saya Susan 👩‍⚕️
+
+Saya siap membantu menjawab pertanyaan kesehatan umum.
+
+Silakan tuliskan pertanyaan Anda.`;
+  }
+
   return `Halo! Selamat datang di R Hospital 👋
 
 Silakan pilih layanan terlebih dahulu:
@@ -158,16 +159,9 @@ Balas dengan angka atau nama layanan.`;
 const [messages, setMessages] = useState([
   {
     role: "bot",
-    text: getWelcomeMessage(),
+    text: getWelcomeMessage("screening"),
   },
 ]);
-
-  const [messages, setMessages] = useState([
-    {
-      role: "bot",
-      text: getWelcomeMessage("screening"),
-    },
-  ]);
 
   const bottomRef = useRef(null);
 
