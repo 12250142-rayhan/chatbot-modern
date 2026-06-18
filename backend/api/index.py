@@ -221,16 +221,18 @@ def is_screening_result(reply):
     return "Hasil skrining awal R Hospital:" in reply
 
 
-def extract_poli_from_screening(screening_text):
-    for line in screening_text.splitlines():
-        if line.lower().startswith("poli rekomendasi:"):
-            return line.split(":", 1)[1].strip()
-
-    return "Poli Umum"
+def get_speciality_by_poli(recommended_poli):
+    poli = (recommended_poli or "").lower()
+    if "gigi" in poli:
+        return "Dokter Gigi"
+    if "tht" in poli:
+        return "Dokter THT"
+    return "Dokter Umum"
 
 
 def build_service_result(selected_service, screening_text=""):
     recommended_poli = extract_poli_from_screening(screening_text)
+    doctor_speciality = get_speciality_by_poli(recommended_poli)
 
     if selected_service == "online":
         doctor = get_on_duty_doctor()
@@ -241,7 +243,7 @@ def build_service_result(selected_service, screening_text=""):
             "BPJS tidak berlaku untuk layanan konsul online.\n\n"
             f"Poli tujuan: {recommended_poli}\n"
             f"Dokter: {doctor['name']}\n"
-            f"Spesialisasi: {doctor['speciality']}\n"
+            f"Spesialisasi: {doctor_speciality}\n"
             f"Jam tersedia: {doctor['shift']}\n"
             f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
             "Silakan hubungi nomor tersebut untuk melanjutkan konsultasi online."
@@ -255,7 +257,7 @@ def build_service_result(selected_service, screening_text=""):
             "Berikut jadwal dokter:\n\n"
             f"Poli tujuan: {recommended_poli}\n"
             f"Dokter: {doctor['name']}\n"
-            f"Spesialisasi: {doctor['speciality']}\n"
+            f"Spesialisasi: {doctor_speciality}\n"
             f"Jam tersedia: {doctor['shift']}\n"
             f"Nomor telepon/WhatsApp: {doctor['phone']}\n\n"
             "Silakan datang ke bagian pendaftaran umum sebelum menuju poli pemeriksaan."
