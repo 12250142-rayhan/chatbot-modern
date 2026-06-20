@@ -364,7 +364,31 @@ def recommend_poli(top, symptoms):
 
     return "Poli Umum"
 
-    
+def determine_attention_level(top, symptoms, age, duration_days, temperature):
+    base_level = top.get("level", "ringan-sedang")
+    reasons = []
+
+    if "demam" in symptoms:
+        if age is not None and age <= 12 and duration_days is not None and duration_days >= 3:
+            reasons.append(
+                "Demam pada anak sudah berlangsung lebih dari 3 hari, sehingga perlu pemeriksaan dokter."
+            )
+
+        if age is not None and age <= 12 and temperature is not None and temperature >= 39:
+            reasons.append(
+                "Suhu tubuh anak mencapai 39°C atau lebih."
+            )
+
+        if duration_days is not None and duration_days >= 7:
+            reasons.append(
+                "Demam sudah berlangsung 7 hari atau lebih, sehingga perlu evaluasi medis."
+            )
+
+    if reasons:
+        return "tinggi", reasons
+
+    return base_level, reasons    
+
 def format_screening_reply(
     symptoms,
     age,
@@ -391,6 +415,13 @@ def format_screening_reply(
 
     top = results[0]
     recommended_poli = recommend_poli(top, symptoms)
+    attention_level, attention_reasons = determine_attention_level(
+        top,
+        symptoms,
+        age,
+        duration_days,
+        temperature,
+    )
 
     lines = [
         "Hasil skrining awal R Hospital:",
@@ -402,11 +433,20 @@ def format_screening_reply(
         "",
         f"Kemungkinan tertinggi: {top['name']}",
         f"Kategori: {top['category']}",
-        f"Tingkat perhatian: {top['level']}",
+        f"Tingkat perhatian: {attention_level}",
         f"Poli rekomendasi: {recommended_poli}",
         "",
         f"Penjelasan: {top['explanation']}",
     ]
+
+    if attention_reasons:
+        lines.extend([
+            "",
+            "Catatan perhatian tinggi:",
+        ])
+
+        for reason in attention_reasons:
+            lines.append(f"- {reason}")
 
     if top.get("advice"):
         lines.extend([
