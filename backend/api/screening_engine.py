@@ -231,7 +231,6 @@ def classify_diseases(symptoms, duration_days=None, dataset=None, top_n=3):
         matched_main = []
         matched_additional = []
         matched_danger = []
-
         main_symptoms = disease.get("main_symptoms", [])
         additional_symptoms = disease.get("additional_symptoms", [])
         danger_symptoms = disease.get("danger_symptoms", [])
@@ -243,19 +242,15 @@ def classify_diseases(symptoms, duration_days=None, dataset=None, top_n=3):
             elif symptom in additional_symptoms:
                 score += 1
                 matched_additional.append(symptom)
-
             if symptom in danger_symptoms:
                 score += 5
                 matched_danger.append(symptom)
 
         min_duration = disease.get("min_duration_days", 0)
-
         if duration_days is not None and duration_days >= min_duration:
             score += 1
-
         if duration_days is not None and min_duration > 0 and duration_days < min_duration:
             score -= 2
-
         if score <= 0:
             continue
 
@@ -388,6 +383,38 @@ def determine_attention_level(top, symptoms, age, duration_days, temperature):
         return "tinggi", reasons
 
     return base_level, reasons    
+
+def need_followup_for_generic_fever(symptoms, duration_days, temperature):
+    symptom_set = set(symptoms)
+
+    generic_fever_symptoms = {"demam", "sakit kepala"}
+
+    specific_symptoms = {
+        "batuk",
+        "pilek",
+        "sakit tenggorokan",
+        "sesak napas",
+        "nyeri dada",
+        "nyeri otot",
+        "mual",
+        "muntah",
+        "diare",
+        "nyeri perut",
+        "bintik merah",
+        "mimisan",
+        "gusi berdarah",
+        "ruam",
+        "lemas",
+    }
+
+    has_generic_fever = "demam" in symptom_set
+    has_only_generic = symptom_set.issubset(generic_fever_symptoms)
+    has_specific = any(symptom in symptom_set for symptom in specific_symptoms)
+
+    if has_generic_fever and has_only_generic and not has_specific:
+        return True
+
+    return False
 
 def format_screening_reply(
     symptoms,
@@ -533,6 +560,20 @@ def screening_reply(message, history=None, on_duty_doctor=None):
             "Saya menangkap gejala: " + ", ".join(symptoms) + ".\n\n"
             "Supaya skrining lebih akurat, mohon lengkapi:\n"
             + "\n".join([f"- {item}" for item in missing])
+        )
+
+    if need_followup_for_generic_fever(symptoms, duration_days, temperature) and not detect_negative_info(current_text):
+        return (
+            "Saya menangkap gejala: " + ", ".join(symptoms) + ".\n\n"
+            "Gejala demam dan sakit kepala masih cukup umum, jadi belum bisa diarahkan ke kemungkinan tertentu.\n\n"
+            "Apakah ada gejala lain seperti:\n"
+            "- batuk atau pilek\n"
+            "- sakit tenggorokan\n"
+            "- nyeri otot atau badan pegal\n"
+            "- mual, muntah, atau nyeri perut\n"
+            "- bintik merah, mimisan, atau gusi berdarah\n"
+            "- sesak napas atau nyeri dada\n\n"
+            "Balas dengan gejala tambahan, atau tulis 'tidak ada' jika memang tidak ada."
         )
 
     results = classify_diseases(
