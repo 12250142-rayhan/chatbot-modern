@@ -345,10 +345,6 @@ def recommend_poli(top, symptoms):
         "sinus",
         "amandel",
         "ispa",
-        "common cold",
-        "batuk pilek",
-        "flu",
-        "batuk",
     ]
 
     if any(keyword in name or keyword in category or keyword in symptom_text for keyword in dental_keywords):
