@@ -426,7 +426,7 @@ def format_screening_reply(
             "Tanda bahaya terdeteksi.\n\n"
             f"Alasan: {', '.join(emergency_reasons)}.\n\n"
             "Kondisi ini termasuk urgent. Sebaiknya segera ke IGD atau fasilitas kesehatan terdekat.\n\n"
-            "Catatan: chatbot ini hanya membantu skrining awal dan bukan pengganti diagnosis dokter."
+            "Catatan: chatbot ini hanya membantu skrining awal dan segera lakukan pengecekan ke IGD."
         )
 
     if not results:
